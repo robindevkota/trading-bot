@@ -256,16 +256,22 @@ class MT5Connector:
 
         # Large buffer for higher TFs so weekly/daily bias is well-established
         htf_start = start - timedelta(days=3 * 365)
-        # Smaller buffer for M15 to stay within MT5 bar-count limits (~50k bars max)
-        m15_start = start - timedelta(days=120)
+        # Small buffer for M15 warm-up (300 bars × 15min = 75h ≈ 4 days).
+        # Keep this short: MT5 demo M15 history starts ~May 2022; a large buffer
+        # on an early start date causes "Invalid params" / empty response.
+        m15_start = start - timedelta(days=7)
 
         self.logger.info(f"Fetching historical data for {symbol}: {start_date} → {end_date}")
+
+        # H1 buffer: enough context for 1H OB lookback (80 bars = ~3 days)
+        h1_start = start - timedelta(days=30)
 
         result = {}
         for key, tf, s in [
             ('weekly', '1W',  htf_start),
             ('daily',  '1D',  htf_start),
             ('h4',     '4H',  htf_start),
+            ('h1',     '1H',  h1_start),
             ('m15',    '15M', m15_start),
         ]:
             df = self.fetch_ohlcv(symbol, tf, start_date=s, end_date=end)
@@ -515,6 +521,7 @@ class MockConnector:
             'weekly': self._generate_synthetic('1W', 104),
             'daily':  self._generate_synthetic('1D', 500),
             'h4':     self._generate_synthetic('4H', 300),
+            'h1':     self._generate_synthetic('1H', 1200),
             'm15':    self._generate_synthetic('15M', 5000),
         }
 
@@ -530,6 +537,7 @@ class MockConnector:
             'weekly': self._generate_range('1W', lookback, end),
             'daily':  self._generate_range('1D', lookback, end),
             'h4':     self._generate_range('4H', lookback, end),
+            'h1':     self._generate_range('1H', lookback, end),
             'm15':    self._generate_range('15M', lookback, end),
         }
 

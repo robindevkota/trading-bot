@@ -50,6 +50,12 @@ class MTFProEntryGenerator:
         'h4_ob_body_ratio':        1.5,  # displacement body must be >= ratio x OB body
         'h4_zone_tol_pips':        10,   # tolerance for "inside zone" check (pips)
 
+        # 1H Order Block detection (nested inside 4H zone)
+        'h1_ob_lookback':          80,   # bars back to scan on 1H (~3 days)
+        'h1_ob_displacement_pips': 8,    # min pips displacement on 1H
+        'h1_zone_tol_pips':        5,    # tolerance for "inside 1H zone" check
+        'use_h1_ob':               False, # enable 1H intermediate OB (presence filter, SL stays at 4H)
+
         # 15M EMA
         'm15_ema': 20,
 
@@ -112,14 +118,22 @@ class MTFProEntryGenerator:
     def generate_signals(self,
                          symbol: str,
                          h4_df: pd.DataFrame,
-                         m15_df: pd.DataFrame) -> List[EntrySignal]:
+                         m15_df: pd.DataFrame,
+                         h1_df: Optional[pd.DataFrame] = None) -> List[EntrySignal]:
         """
-        Run the full 3-TF scan for both pro-trend and counter-trend opportunities.
+        Run the full 4-TF scan for both pro-trend and counter-trend opportunities.
+
+        h1_df is optional — if provided and use_h1_ob=True, the 1H OB layer is active.
+        Falls back to v1 (4H zone direct entry) when h1_df is absent or empty.
 
         Returns the highest-scoring signal (0 or 1 per call).
         """
         if len(h4_df) < 50 or len(m15_df) < 30:
             return []
+
+        # Normalise h1 — treat missing/empty as None
+        if h1_df is not None and (h1_df.empty or len(h1_df) < 10):
+            h1_df = None
 
         # ── Step 1: Daily bias (2 confluences: EMA cross + RSI) ────────
         daily_df = self._resample_daily(h4_df)
@@ -142,14 +156,16 @@ class MTFProEntryGenerator:
 
         # Pro-trend: 4H structure must confirm daily bias
         if self._h4_trend_confirmed(h4_df, bias):
-            sig, score = self._scan_direction(symbol, h4_df, m15_df, bias, is_counter=False)
+            sig, score = self._scan_direction(symbol, h4_df, m15_df, bias,
+                                              is_counter=False, h1_df=h1_df)
             if sig and score > best_score:
                 best_signal, best_score = sig, score
 
         # Counter-trend: 4H structure must confirm the OPPOSITE direction
         if self.config.get('use_counter_trend', True):
             if self._h4_trend_confirmed(h4_df, ct_bias):
-                sig, score = self._scan_direction(symbol, h4_df, m15_df, ct_bias, is_counter=True)
+                sig, score = self._scan_direction(symbol, h4_df, m15_df, ct_bias,
+                                                  is_counter=True, h1_df=h1_df)
                 if sig and score > best_score:
                     best_signal, best_score = sig, score
 
@@ -171,9 +187,16 @@ class MTFProEntryGenerator:
                         h4_df: pd.DataFrame,
                         m15_df: pd.DataFrame,
                         direction: SignalDirection,
-                        is_counter: bool) -> Tuple[Optional[EntrySignal], int]:
+                        is_counter: bool,
+                        h1_df: Optional[pd.DataFrame] = None) -> Tuple[Optional[EntrySignal], int]:
         """
         Find entry zones and score all models for a given direction.
+
+        SL is ALWAYS anchored to the 4H OB zone (structural stop).
+        When h1_df is provided and use_h1_ob=True, a 1H OB nested inside
+        the 4H zone acts as a presence filter / entry timing qualifier only —
+        it does NOT change the SL level. This keeps v1 RR intact while
+        adding 1H confluence as a label.
 
         Returns (best_signal, score) or (None, 0).
         """
@@ -197,17 +220,34 @@ class MTFProEntryGenerator:
                 return None, 0
 
         # ── Find 4H OB zones in this direction ──
-        zones = self._find_4h_ob_zones(h4_df, direction)
-        if not zones:
+        h4_zones = self._find_4h_ob_zones(h4_df, direction)
+        if not h4_zones:
             return None, 0
 
-        # ── Is price currently entering / inside a zone? ──
-        active_zone = self._find_active_zone(m15_df, zones, direction)
-        if active_zone is None:
+        # ── Is price currently entering / inside a 4H zone? ──
+        active_h4_zone = self._find_active_zone(m15_df, h4_zones, direction)
+        if active_h4_zone is None:
             return None, 0
+
+        # ── Optional 1H OB: presence filter only — SL stays at 4H zone ──
+        # SL is always anchored to active_h4_zone['low'] (structural stop).
+        # A valid 1H OB nested inside the 4H zone adds '1H-OB' to criteria
+        # for logging but does NOT change the zone used by entry models.
+        active_zone = active_h4_zone   # v1 + v2: SL always references 4H zone
+        using_h1_ob = False
+        if (self.config.get('use_h1_ob', False)
+                and h1_df is not None and len(h1_df) >= 10):
+            h1_zones = self._find_1h_ob_zones(h1_df, direction, active_h4_zone)
+            if h1_zones:
+                h1_active = self._find_active_zone(m15_df, h1_zones, direction,
+                                                   tol_key='h1_zone_tol_pips')
+                if h1_active:
+                    using_h1_ob = True   # label only — active_zone unchanged
 
         # ── Flip zone bonus ──
         score = 1 if self._is_flip_zone(h4_df, active_zone, direction) else 0
+        # Note: 1H OB does NOT add to score — it is a presence filter only.
+        # SL is always anchored to the 4H zone regardless of 1H OB presence.
 
         candidates: List[Tuple[int, EntrySignal]] = []
 
@@ -262,6 +302,7 @@ class MTFProEntryGenerator:
         # Label all confluences
         best_sig.criteria_met = (
             ['1D-bias', '4H-OB']
+            + (['1H-OB'] if using_h1_ob else [])
             + [f'15M-{getattr(s, "phase", "?").split("-")[-1]}' for _, s in candidates]
             + (['flip-zone'] if score > sum(p for p, _ in candidates) else [])
         )
@@ -483,9 +524,11 @@ class MTFProEntryGenerator:
 
     def _find_active_zone(self, m15_df: pd.DataFrame,
                           zones: List[Dict],
-                          bias: SignalDirection) -> Optional[Dict]:
+                          bias: SignalDirection,
+                          tol_key: str = 'h4_zone_tol_pips') -> Optional[Dict]:
         """
         Return the first zone that the current 15M bar is touching or inside.
+        tol_key selects which tolerance config param to use (4H or 1H).
         """
         hc = 'high'  if 'high'  in m15_df.columns else 'High'
         lc = 'low'   if 'low'   in m15_df.columns else 'Low'
@@ -495,7 +538,7 @@ class MTFProEntryGenerator:
         bar_h = float(bar[hc])
         bar_l = float(bar[lc])
         bar_c = float(bar[cc])
-        tol   = self.config['h4_zone_tol_pips'] * self.config['pip_size']
+        tol   = self.config.get(tol_key, 10) * self.config['pip_size']
 
         for zone in zones:
             if bias == SignalDirection.LONG:
@@ -505,6 +548,70 @@ class MTFProEntryGenerator:
                 if bar_h >= zone['low'] - tol and bar_c <= zone['high'] + tol:
                     return zone
         return None
+
+    def _find_1h_ob_zones(self, h1_df: pd.DataFrame,
+                          bias: SignalDirection,
+                          h4_zone: Dict) -> List[Dict]:
+        """
+        Identify fresh unmitigated 1H Order Block zones nested inside the 4H macro zone.
+
+        Same detection logic as _find_4h_ob_zones() but:
+          - Uses h1_ob_displacement_pips / h1_ob_lookback params
+          - Only returns zones whose price range overlaps the 4H zone
+            (ensures the 1H OB is a sub-zone, not a random distant level)
+        """
+        oc = 'open'  if 'open'  in h1_df.columns else 'Open'
+        hc = 'high'  if 'high'  in h1_df.columns else 'High'
+        lc = 'low'   if 'low'   in h1_df.columns else 'Low'
+        cc = 'close' if 'close' in h1_df.columns else 'Close'
+
+        lookback = min(self.config.get('h1_ob_lookback', 80), len(h1_df) - 5)
+        min_disp = self.config.get('h1_ob_displacement_pips', 8) * self.config['pip_size']
+        n        = len(h1_df)
+        zones    = []
+
+        # 4H zone bounds (with small tolerance) for the nesting check
+        tol = self.config.get('h4_zone_tol_pips', 10) * self.config['pip_size']
+        h4_low  = h4_zone['low']  - tol
+        h4_high = h4_zone['high'] + tol
+
+        for i in range(n - 4, max(n - lookback, 1), -1):
+            o_i = float(h1_df[oc].iloc[i])
+            h_i = float(h1_df[hc].iloc[i])
+            l_i = float(h1_df[lc].iloc[i])
+            c_i = float(h1_df[cc].iloc[i])
+
+            post = h1_df.iloc[i + 1: i + 4]
+            if post.empty:
+                continue
+
+            if bias == SignalDirection.LONG:
+                if c_i >= o_i:
+                    continue   # OB candle must be bearish
+                if float(post[cc].max()) < h_i + min_disp:
+                    continue   # insufficient displacement
+                if (h1_df[cc].iloc[i + 1:] < l_i).any():
+                    continue   # mitigated
+                # Zone must overlap with (or sit inside) the 4H macro zone
+                if h_i < h4_low or l_i > h4_high:
+                    continue
+                zones.append({'low': l_i, 'high': h_i, 'age': n - i, 'tf': '1H'})
+
+            else:
+                if c_i <= o_i:
+                    continue
+                if float(post[cc].min()) > l_i - min_disp:
+                    continue
+                if (h1_df[cc].iloc[i + 1:] > h_i).any():
+                    continue
+                if l_i > h4_high or h_i < h4_low:
+                    continue
+                zones.append({'low': l_i, 'high': h_i, 'age': n - i, 'tf': '1H'})
+
+            if len(zones) >= 3:
+                break
+
+        return zones
 
     # ------------------------------------------------------------------ #
     # Flip zone bonus                                                      #

@@ -226,12 +226,13 @@ class TradingBot:
                                      data: Dict[str, pd.DataFrame]) -> List[EntrySignal]:
         """Run the MTF PRO generator on the provided data."""
         h4  = data.get('h4',  pd.DataFrame())
+        h1  = data.get('h1',  pd.DataFrame())
         m15 = data.get('m15', pd.DataFrame())
         if h4.empty or m15.empty:
             return []
         try:
             gen = self._generators.get(symbol, self._default_generator)
-            return gen.generate_signals(symbol, h4, m15)
+            return gen.generate_signals(symbol, h4, m15, h1_df=h1)
         except Exception as e:
             self.logger.warning(f"MTF PRO error ({symbol}): {e}", exc_info=True)
             return []
@@ -411,10 +412,10 @@ class TradingBot:
         _test_start_pos  = m15_full_arr.searchsorted(m15_test.index[0])
         _m15_window      = 300
 
-        # Timeframe cache — re-slice 4H only when its bar closes
+        # Timeframe cache — re-slice when each bar closes
         _tf_cache: Dict[str, pd.DataFrame] = {}
         _tf_last:  Dict[str, pd.Timestamp] = {}
-        _tf_interval = {'h4': timedelta(hours=4)}
+        _tf_interval = {'h4': timedelta(hours=4), 'h1': timedelta(hours=1)}
 
         n_bars          = len(m15_test)
         _progress_every = max(500, n_bars // 20)
@@ -453,15 +454,16 @@ class TradingBot:
                     f"trades={len(self.trade_history)}"
                 )
 
-            # Refresh 4H slice only when a new 4H bar has closed
+            # Refresh H4/H1 slices only when a new bar has closed
             for tf, interval in _tf_interval.items():
                 if tf not in _tf_cache or (bar_time - _tf_last[tf]) >= interval:
                     raw   = data.get(tf, pd.DataFrame())
-                    limit = {'h4': 600}[tf]
+                    limit = {'h4': 600, 'h1': 240}[tf]
                     _tf_cache[tf] = _slice_up_to(raw, bar_time).iloc[:-1].tail(limit)
                     _tf_last[tf]  = bar_time
 
             h4  = _tf_cache.get('h4', pd.DataFrame())
+            h1  = _tf_cache.get('h1', pd.DataFrame())
             # 15M: O(1) integer slice
             _end   = _test_start_pos + i + 1
             _start = max(0, _end - _m15_window)
@@ -471,6 +473,8 @@ class TradingBot:
                 continue
 
             current_price = float(bar['close'])
+            current_high  = float(bar['high'])
+            current_low   = float(bar['low'])
             current_high  = float(bar['high'])
             current_low   = float(bar['low'])
 
@@ -524,7 +528,7 @@ class TradingBot:
 
             # --- Signal analysis: every 2H (8 × 15M bars), no open position ---
             if i % 8 == 0 and not self.positions and not self.pending_signals:
-                bar_data   = {'h4': h4, 'm15': m15}
+                bar_data   = {'h4': h4, 'h1': h1, 'm15': m15}
                 new_signals = self._generate_signals_from_data(symbol, bar_data)
                 for sig in new_signals:
                     if _is_duplicate_signal(sig, self.all_signals):
