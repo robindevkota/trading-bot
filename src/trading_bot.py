@@ -157,6 +157,20 @@ class TradingBot:
             self.logger.error("Cannot connect to MT5 — aborting")
             return
 
+        # Sync position sizing to the ACTUAL MT5 account balance.
+        # Config initial_balance is for backtesting only — do not use it live.
+        acct = self.connector.get_account_info()
+        if acct and acct.get('balance', 0) > 0:
+            live_balance = acct['balance']
+            self.risk_manager.metrics.account_balance = live_balance
+            self.risk_manager.metrics.account_equity  = acct.get('equity', live_balance)
+            self.risk_manager.metrics.peak_equity     = acct.get('equity', live_balance)
+            self.risk_manager.position_sizer.account_balance = live_balance
+            self.logger.info(
+                f"Account balance synced from MT5: "
+                f"${live_balance:,.2f} {acct.get('currency', 'USD')}"
+            )
+
         self.is_running = True
         self.logger.info("Trading bot started (LIVE mode)")
 
