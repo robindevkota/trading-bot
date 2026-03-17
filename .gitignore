@@ -1,0 +1,23 @@
+# MT5 credentials — never commit
+config/config.yaml
+
+# Keep the example config
+!config/config.example.yaml
+
+# Runtime output
+logs/
+results/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# IDE / local tooling
+.vscode/
+.idea/
+.claude/
+
+# OS
+nul
+Thumbs.db
+.DS_Store

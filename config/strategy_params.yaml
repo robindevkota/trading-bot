@@ -1,0 +1,192 @@
+# Strategy Parameters based on Multi-Timeframe Analysis Framework
+
+# Structure Detection Parameters
+structure:
+  # Swing High/Low Detection
+  swing_length: 5  # Number of candles on each side for swing detection
+  min_swing_distance: 20  # Minimum pips between swings
+
+  # Break of Structure (BoS)
+  bos_confirmation_pips: 5  # Pips beyond swing to confirm BoS
+  bos_candle_close: true  # Require candle close beyond swing
+
+  # Change of Character (CoC)
+  coc_min_strength: 0.6  # Minimum strength (0-1) for CoC validation
+
+# Zone Identification
+zones:
+  # POI (Point of Interest)
+  poi_lookback_candles: 50  # Candles to look back for POI
+  poi_min_touches: 2  # Minimum times zone was touched historically
+  poi_zone_width_pips: 10  # Width of POI zone in pips
+
+  # Premium/Discount Zones
+  equilibrium_method: "fibonacci"  # "fibonacci" or "midpoint"
+  discount_threshold: 0.5  # Below EQ (0.5 = 50%)
+  premium_threshold: 0.5  # Above EQ (0.5 = 50%)
+
+  # Flip Zone Detection
+  flip_zone_min_age: 10  # Minimum candles since flip occurred
+  flip_zone_confirmation: true  # Require confirmation of flip
+
+# Confluence Factors
+confluence:
+  # Liquidity Sweep
+  liquidity_sweep_pips: 5  # Pips beyond level to confirm sweep
+  liquidity_sweep_weight: 1.5  # Weight in confluence score
+
+  # Inducement Zones
+  inducement_zone_distance: 50  # Max pips from POI to inducement
+  inducement_weight: 1.3  # Weight in confluence score
+
+  # Structure Zones (double top/bottom, etc.)
+  structure_zone_tolerance: 10  # Pips tolerance for structure levels
+  structure_zone_weight: 1.5  # Weight in confluence score
+
+  # Minimum confluence score to trade
+  min_confluence_score: 3.0
+
+# Counter Trend Strategy Phases
+counter_trend:
+  # Phase 1: Weekly Bias
+  phase1:
+    timeframe: "1W"
+    min_swings_for_bias: 3  # Minimum swing points to establish bias
+    bos_required: true
+
+  # Phase 2: Daily Refinement
+  phase2:
+    timeframe: "1D"
+    validate_weekly: true  # Must align with weekly bias
+    refinement_checklist:
+      - flip_zone
+      - structure_zone
+      - liquidity_sweep
+      - inducement_zones
+
+  # Phase 3: 4H Entry Structure
+  phase3:
+    timeframe: "4H"
+    wait_for_coc: true
+    coc_triggers_15m: true
+
+  # Phase 4: 15M Confirmation
+  phase4:
+    timeframe: "15M"
+    require_double_bos: true
+    wait_for_second_bos: true
+
+  # Phase 5: 15M POI Identification
+  phase5:
+    place_poi_below_eq: true  # For bullish counter-trend
+    multiple_poi_levels: true
+
+  # Phase 6: 1M Micro Confirmation
+  phase6:
+    timeframe: "1M"
+    require_v_shape: true
+    sharp_reaction_threshold: 0.7  # Strength of reaction (0-1)
+
+  # Phase 7: Entry Execution
+  phase7:
+    entry_options:
+      - name: "extreme"
+        priority: 1
+        probability: "high"
+      - name: "above_extreme"
+        priority: 2
+        probability: "lower"
+        requirements:
+          - flip_zone_confirmation
+          - liquidity_sweep
+          - volume_confirmation
+
+  # Phase 8: Target & Exit
+  phase8:
+    primary_target: "old_hh"  # Old Higher High on 15M
+    secondary_target: "4h_supply"  # 4H supply zone
+    allow_scaling: true
+    scale_out_percent: 50  # % to close at first target
+
+# Pro Trend Strategy Phases
+pro_trend:
+  # Phase 1: Weekly Bias
+  phase1:
+    timeframe: "1W"
+    confirm_trend: true
+    trend_indicators:
+      - higher_highs
+      - higher_lows
+    min_trend_length: 3  # Minimum swing points for trend
+
+  # Phase 2: Daily Refinement
+  phase2:
+    timeframe: "1D"
+    must_align_weekly: true
+    check_trend_continuation: true
+
+  # Phase 3: 4H Entry Structure
+  phase3:
+    timeframe: "4H"
+    coc_direction: "trend"  # CoC must be in trend direction
+    wait_for_pullback: true
+
+  # Phase 4: 15M Confirmation
+  phase4:
+    timeframe: "15M"
+    require_double_bos: true
+    bos_direction: "trend"  # Both BoS in trend direction
+
+  # Phase 5: 15M POI Identification
+  phase5:
+    bullish_use_discount: true  # Buy discount for bullish trend
+    bearish_use_premium: true  # Sell premium for bearish trend
+
+  # Phase 6: 1M Micro Confirmation
+  phase6:
+    timeframe: "1M"
+    require_momentum: true
+    volume_surge_threshold: 1.5  # Volume multiplier for surge
+
+  # Phase 7: Entry Execution
+  phase7:
+    preferred_entry: "breakout"  # Breakout entry with momentum
+    allow_scaling: true
+    scale_in_on_confirmation: true
+
+  # Phase 8: Target & Exit
+  phase8:
+    primary_target: "15m_structure"  # Next structural level on 15M
+    secondary_target: "4h_structure"  # 4H structural level
+    tertiary_target: "weekly_structure"  # Weekly level for extended trades
+    use_trailing_stop: true
+    trail_by: "1m_swing"  # Trail by 1M swing levels
+    partial_exits:
+      - percent: 33
+        target: "primary"
+      - percent: 33
+        target: "secondary"
+      - percent: 34
+        target: "tertiary"
+
+# Volume Analysis (if available)
+volume:
+  enabled: false  # Enable if volume data available
+  surge_multiplier: 1.5
+  accumulation_threshold: 1.2
+
+# Additional Rules
+rules:
+  # From the PDF key rules
+  never_skip_timeframes: true
+  structure_over_price: true
+  wait_for_double_confirmation: true
+  refinement_after_reaction: true
+  keep_htf_zones_visible: true
+  extreme_entry_for_consistency: true
+
+  # Pro-trend specific
+  trend_is_friend: true  # Only trade with weekly bias for pro-trend
+  scale_in_with_trends: true
+  trail_stops_on_trends: true
+  weekly_structure_unbreakable: true  # Exit if weekly BoS breaks
