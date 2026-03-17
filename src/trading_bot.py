@@ -207,16 +207,144 @@ class TradingBot:
                 self.logger.error(f"Error scanning {symbol}: {e}", exc_info=True)
 
     def _live_update_positions(self):
-        """Update open positions with current live prices."""
+        """
+        Live position management — runs every 60 s in the main loop.
+
+        Step 1: sync with MT5 — detect positions closed by SL/TP and
+                update the bot's internal state so new trades can open.
+        Step 2: for remaining open positions, check TP1 and move SL to
+                breakeven on MT5 when the first target is reached.
+        """
+        self._sync_positions_from_mt5()
+
         for position in self.positions[:]:
             try:
                 tick = self.connector.get_current_price(position.symbol)
                 if not tick:
                     continue
                 current_price = (tick['bid'] + tick['ask']) / 2
-                self._update_single_position(position, current_price)
+                position.calculate_pnl(current_price)
+                self._check_live_tp1(position, current_price)
             except Exception as e:
                 self.logger.error(f"Error updating #{position.ticket}: {e}")
+
+    def _sync_positions_from_mt5(self):
+        """
+        Reconcile internal position list with what MT5 actually has open.
+
+        When MT5 closes a position via SL or TP, the bot's internal list
+        still shows it as OPEN.  This method detects that and marks it
+        closed so that the risk manager allows the next trade.
+        """
+        try:
+            live = self.connector.get_open_positions()
+        except Exception as e:
+            self.logger.warning(f"MT5 position sync error: {e}")
+            return
+
+        live_tickets = {p['ticket'] for p in live}
+
+        for pos in self.positions[:]:
+            if not pos.ticket or pos.ticket in live_tickets:
+                continue  # still open on MT5, nothing to do
+
+            # MT5 closed this position — get price and reason
+            close_price, close_status = self._get_mt5_close_info(pos)
+
+            pos.status     = close_status
+            pos.close_time = datetime.now()
+            pos.calculate_pnl(close_price)
+            realized = pos.unrealized_pnl
+            pos.realized_pnl = realized
+
+            # Update risk metrics so daily-loss / drawdown limits stay accurate
+            self.risk_manager.metrics.account_balance += realized
+            self.risk_manager.metrics.daily_pnl       += realized
+            if realized > 0:
+                self.risk_manager.metrics.daily_wins   += 1
+            else:
+                self.risk_manager.metrics.daily_losses += 1
+            self.risk_manager.metrics.daily_trades += 1
+
+            self.trade_history.append(pos)
+            self.positions.remove(pos)
+
+            result_str = "WIN" if realized > 0 else "LOSS"
+            self.logger.info(
+                f"TRADE CLOSED [{result_str}] (MT5 sync) "
+                f"{pos.direction.value} {pos.symbol} @ {close_price:.5f}  "
+                f"PnL=${realized:+.2f}  status={close_status.value}"
+            )
+
+    def _get_mt5_close_info(self, pos: Position):
+        """
+        Return (close_price, TradeStatus) for a position that MT5 already closed.
+
+        Tries MT5 deal history first; falls back to current bid/ask if unavailable.
+        """
+        close_price = None
+
+        try:
+            import MetaTrader5 as _mt5
+            deals = _mt5.history_deals_get(position=pos.ticket)
+            if deals and len(deals) >= 2:
+                close_price = float(deals[-1].price)
+        except Exception:
+            pass
+
+        if close_price is None:
+            tick = self.connector.get_current_price(pos.symbol)
+            if tick:
+                close_price = (tick['bid'] + tick['ask']) / 2
+            else:
+                close_price = pos.stop_loss  # safest fallback
+
+        # Determine win/loss by comparing close to TP (±0.5 pip tolerance)
+        tol = 5e-4
+        if pos.direction == SignalDirection.LONG:
+            status = (TradeStatus.TAKE_PROFIT
+                      if close_price >= pos.take_profit - tol
+                      else TradeStatus.STOPPED_OUT)
+        else:
+            status = (TradeStatus.TAKE_PROFIT
+                      if close_price <= pos.take_profit + tol
+                      else TradeStatus.STOPPED_OUT)
+        return close_price, status
+
+    def _check_live_tp1(self, pos: Position, current_price: float):
+        """
+        Move SL to breakeven on MT5 when price first reaches the TP1 level.
+
+        In live mode we don't partial-close (requires a counter-order which
+        complicates lot tracking).  Instead we just slide the stop to entry,
+        locking in a scratch-at-worst result while the runner targets TP2.
+        """
+        if not pos.targets or not pos.ticket:
+            return
+        if pos.targets_hit[0]:
+            return  # already triggered
+
+        tp1 = pos.targets[0]
+        tp1_reached = (
+            (pos.direction == SignalDirection.LONG  and current_price >= tp1) or
+            (pos.direction == SignalDirection.SHORT and current_price <= tp1)
+        )
+        if not tp1_reached:
+            return
+
+        pos.targets_hit[0] = True
+        be = pos.entry_price
+
+        if self.connector.modify_position(pos.ticket, sl=be, tp=pos.take_profit):
+            pos.stop_loss = be
+            self.logger.info(
+                f"TP1 hit — SL moved to breakeven {be:.5f}  "
+                f"#{pos.ticket} {pos.symbol}"
+            )
+        else:
+            self.logger.warning(
+                f"TP1 hit but failed to modify SL for #{pos.ticket} {pos.symbol}"
+            )
 
     # ------------------------------------------------------------------
     # Signal generation

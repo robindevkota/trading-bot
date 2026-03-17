@@ -229,6 +229,7 @@ class MT5Connector:
             'weekly': '1W',
             'daily':  '1D',
             'h4':     '4H',
+            'h1':     '1H',
             'm15':    '15M',
         }
         result = {}
