@@ -1,8 +1,35 @@
-# Counter Trend Trading Bot — CLAUDE.md
+# MTF PRO Trading Bot — CLAUDE.md
+
+---
+
+## Quick Start
+
+```bash
+# Install dependencies (first time only)
+pip install -r requirements.txt
+
+# ── Live demo trading ──────────────────────────────────────────────────────
+# MT5 terminal must be open and logged in before running
+python -m src.trading_bot --mode live
+
+# ── Backtesting (validated date windows) ──────────────────────────────────
+python -m src.trading_bot --mode backtest --symbol EURUSD --start 2023-01-01 --end 2023-12-31 --fresh
+python -m src.trading_bot --mode backtest --symbol EURUSD --start 2024-01-01 --end 2024-12-31 --fresh
+python -m src.trading_bot --mode backtest --symbol AUDUSD --start 2023-01-01 --end 2024-12-31 --fresh
+python -m src.trading_bot --mode backtest --symbol NZDUSD --start 2024-01-01 --end 2024-12-31 --fresh
+python -m src.trading_bot --mode backtest --symbol USDCHF --start 2024-01-01 --end 2024-12-31 --fresh
+```
+
+---
 
 ## Project Overview
 
-A Python-based algorithmic trading bot implementing the **Counter Trend Trading System** and **Pro Trend Trading System** from `Counter Trend Trading System.pdf`. Uses a multi-timeframe analysis framework (Weekly → Daily → 4H → 15M → 1M) to identify high-probability trade entries.
+Python algorithmic trading bot running the **MTF PRO** strategy — a 3-timeframe
+system that identifies Order Block zones and waits for scored 15M entry triggers.
+
+**Git branches**
+- `v1.0` tag — 4 locked pairs, baseline results
+- `v2-1h-intermediate` (current) — 1H OB architecture + live demo readiness
 
 ---
 
@@ -11,134 +38,149 @@ A Python-based algorithmic trading bot implementing the **Counter Trend Trading 
 ```
 trading bot h/
 ├── src/
-│   ├── trading_bot.py              # Main bot orchestrator + Backtester
-│   ├── analysis/
-│   │   ├── swing_detection.py      # Swing High/Low detection (Phase 1)
-│   │   ├── break_of_structure.py   # BoS & CoC detection (Phases 3-4)
-│   │   ├── zone_detection.py       # POI/Zone detection (Phases 2, 5)
-│   │   └── bias_analysis.py        # Multi-timeframe bias (Phases 1-2)
+│   ├── trading_bot.py              # Main orchestrator — live loop + backtest engine
 │   ├── strategies/
-│   │   └── counter_trend_entry.py  # Signal generation (Phases 3-8)
-│   └── risk/
-│       └── position_manager.py     # Risk management & trade execution
+│   │   ├── mtf_pro_entry.py        # ACTIVE — MTFProEntryGenerator (3-TF strategy)
+│   │   └── counter_trend_entry.py  # LEGACY — EntrySignal/SignalDirection types only
+│   ├── data/
+│   │   └── mt5_connector.py        # MT5 connection, data fetch, order execution
+│   ├── risk/
+│   │   └── position_manager.py     # RiskManager, PositionSizer, TradeExecutor
+│   └── analysis/                   # LEGACY — not used by active strategy
 ├── config/
-│   ├── config.yaml                 # Main config (MT5, trading, risk)
-│   └── strategy_params.yaml        # Strategy parameters
-├── logs/                           # Runtime logs
-├── results/                        # Trade history, open positions, reports
-└── requirements.txt                # Dependencies (MT5, pandas, numpy, ta-lib)
+│   ├── config.yaml                 # MT5 creds, symbols, strategy + risk params
+│   └── config.example.yaml         # Safe copy (no credentials) for version control
+├── logs/                           # Runtime logs (auto-created)
+├── results/                        # Trade history JSON (auto-created)
+└── requirements.txt
 ```
 
 ---
 
-## Strategy Summary (from PDF)
+## Strategy: MTF PRO v5
 
-### Counter Trend System (8 Phases)
-| Phase | Timeframe | Action |
-|-------|-----------|--------|
-| 1 | Weekly | Mark SH/SL, BoS, POI — establish macro bias |
-| 2 | Daily | Refine weekly POI (flip zone, structure, liq sweep, inducement) |
-| 3 | 4H | Mark SH/SL, BoS, identify 4H POI, wait for CoC |
-| 4 | 15M | Wait for Double Swing BoS — catches HLO, targets old HH |
-| 5 | 15M | Identify POI BELOW equilibrium (discount zone) |
-| 6 | 1M | Wait for CoC with V-shape sharp reaction at POI |
-| 7 | Entry | Option A: entry at extreme / Option B: above extreme (needs flip+liq+vol) |
-| 8 | Exit | Target old HH (15M); secondary: nearest 4H supply |
+**3-timeframe flow:**
 
-### Pro Trend System (same 8 phases, different logic)
-- Entry WITH weekly bias, not against it
-- Target: next structural resistance/support (extended moves)
-- Scale-in 50%+50% approach
-- Trail stop: close 33% at T1, move to BE, trail to T2/T3
+```
+1D bias  ──►  4H Order Block zone  ──►  15M entry trigger
+(EMA21/50       (unmitigated OB,          (scored models:
+ + RSI > 50)     price entering zone)      CHoCH +2, Sweep +2,
+                                           BOS +1, EMA20 +1,
+                                           Flip zone +1)
+```
 
-### Key Terminology
-- **BoS** = Break of Structure
-- **CoC** = Change of Character (stronger BoS, V-shape)
-- **POI** = Point of Interest (supply/demand zone)
-- **HH/HL/LH/LL** = Higher High/Low, Lower High/Low
-- **EQ** = Equilibrium (midpoint of swing range)
-- **Premium** = Upper half of range (sell area)
-- **Discount** = Lower half of range (buy area)
-- **Flip Zone** = Zone that switched from supply to demand or vice versa
-- **CoC Line** = Line formed by new high/low that caused BoS (not just any swing)
+**Direction:** LONG-only mode (`use_short_direction: false`).
+Both pro-trend LONG and counter-trend LONG are active.
+
+**Minimum score to trade:**
+- Pro-trend: `min_entry_score: 2` + confidence ≥ 0.40 (effectively score ≥ 3)
+- Counter-trend: `ct_min_score: 4`
+
+**SL/TP:**
+- SL = 4H zone_low − ATR_buffer × 4H_ATR
+- TP1 = 1.5R (SL moves to breakeven)
+- TP2 = 3.0R (full exit)
 
 ---
 
-## Completion Status
+## Validated Pairs (all LOCKED — do not change params)
 
-### COMPLETED (~60% overall)
+| Pair | Window | Trades | WR | PnL |
+|------|--------|--------|----|-----|
+| EURUSD | 2023 | 3 | 67% | +$6,073 |
+| EURUSD | 2024 | 4 | 50% | +$4,315 |
+| AUDUSD | 2023–2024 | 2 | 50% | +$2,894 |
+| NZDUSD | 2024 | 3 | 67% | +$4,881 |
+| USDCHF | 2024 | 2 | 50% | +$1,710 |
+| **Total** | | **14** | **~58%** | **+$19,873** |
 
-#### Analysis Layer (~80% done)
-- [x] Swing Detection — `SwingDetector` + `AdaptiveSwingDetector` (ATR-based)
-- [x] Break of Structure — `BreakOfStructureDetector.detect_bos()` + `detect_sequential_bos()`
-- [x] Change of Character — `ChangeOfCharacterDetector` with V-shape + rejection candle detection
-- [x] Zone Detection — `ZoneDetector` with demand/supply zones, premium/discount, POI
-- [x] Zone Validation — flip zone, structure zone, liquidity sweep, inducement checks
-- [x] Multi-Timeframe Bias — `BiasAnalyzer` across W/D/4H/15M
-- [x] Counter-Trend Bias — `CounterTrendBiasAnalyzer.find_counter_trend_setup()`
-- [x] Multi-TF Zone Manager — `MultiTimeframeZoneManager` with zone alignment
+**~5 trades/year** across all 4 pairs — frequency is a known ceiling with strict filters.
 
-#### Strategy Layer (~70% done)
-- [x] Counter Trend Entry — `CounterTrendEntryGenerator` (full 8-phase checklist)
-- [x] Pro Trend Entry — `ProTrendEntryGenerator` (basic implementation)
-- [x] Entry Types — Option A (extreme) + Option B (above extreme)
-- [x] Signal Validation — `validate_signal()` method
-
-#### Risk Management (~85% done)
-- [x] Position Sizing — `PositionSizer` (% risk-based, pip value per symbol)
-- [x] Risk Manager — daily loss limit, max drawdown, max open positions
-- [x] Trailing Stop — activation at configurable RR ratio
-- [x] Stop Out Checks — SL/TP hit detection
-- [x] Trade Executor — market/limit orders with spread + slippage simulation
-
-#### Bot Orchestration (~50% done)
-- [x] `TradingBot` class — main loop, scheduler (08:00/12:00/16:00 sessions)
-- [x] `Backtester` class — multi-symbol backtest runner
-- [x] Results Saving — JSON trade history, open positions, risk summary
-- [x] Logging — console + file logging
-- [x] CLI — `--mode live/backtest --symbol --start --end --config`
-- [x] Configuration — full `config.yaml` with MT5, trading, risk, strategy settings
+> **Note:** MT5 demo server periodically updates historical data. If a combined
+> 2022-2024 run gives different results, always test each year separately to
+> find where the trades land.
 
 ---
 
-### NOT IMPLEMENTED (Remaining ~40%)
+## Per-Symbol Locked Parameters
 
-#### 1. Data Layer — CRITICAL MISSING
-- [ ] MT5 Connection — `mt5.initialize()`, login, `copy_rates_from_pos()`
-- [ ] Historical Data Loading — `_load_historical_data()` returns `None` (placeholder only)
-- [ ] Live Price Feed — `_analyze_symbol()` returns `[]` (placeholder only)
-- [ ] Timeframe Mapping — MT5 timeframe constants (e.g. `mt5.TIMEFRAME_W1`)
-- [ ] Data Normalization — MT5 rates dict → pandas OHLC DataFrame
+Each symbol has isolated params in `config.yaml → strategy.symbol_params`.
+Changes to one symbol cannot affect others.
 
-#### 2. Backtesting Engine — NOT BUILT
-- [ ] Historical Data Iteration — bar-by-bar walk-forward simulation
-- [ ] Signal Generation on History — `_generate_backtest_signals()` is empty
-- [ ] Performance Metrics — Sharpe ratio, profit factor, max consecutive losses
-
-#### 3. Pro Trend Advanced Features — PARTIAL
-- [ ] Scale-in Position Management — 50% at extreme + 50% on momentum confirmation
-- [ ] Multiple Targets — Primary (15M/4H), Secondary (4H zone), Tertiary (Weekly)
-- [ ] Trailing Exit Logic — close 33% at T1, move SL to BE, trail on 1M structure
-
-#### 4. Visualization — NOT BUILT
-- [ ] Chart Plotting — trade entries/exits on OHLC chart
-- [ ] Zone Visualization — supply/demand zone overlay
-- [ ] Equity Curve — account equity over time
-
-#### 5. Known Bugs to Fix
-- [ ] **CoC-at-POI check** — `counter_trend_entry.py:307` calls `poi.contains(coc['index'])`, comparing zone *price range* with candle *index integer*. Should compare zone price range with the candle's price at that index.
-- [ ] **`_create_demand_zones()` bug** — `zone_detection.py:147` iterates `swing_lows` but checks `SwingType.HIGH` on elements that are already filtered lows.
-- [ ] **Pro Trend confidence** — hardcoded to `0.7` in `counter_trend_entry.py:529`, should be dynamically calculated like counter-trend.
+| Symbol | disp_pips | atr_buffer | use_bos | min_sl |
+|--------|-----------|------------|---------|--------|
+| EURUSD | 15 | 0.75 | true | 15 |
+| AUDUSD | 12 | 1.0 | false | 12 |
+| NZDUSD | 12 | 1.0 | false | 12 |
+| USDCHF | 15 | 0.75 | true | 15 |
 
 ---
 
-## Development Priorities (Next Steps)
+## Implementation Status
 
-1. **MT5 Data Integration** — implement `_load_historical_data()` and `_analyze_symbol()` with real MT5 API calls
-2. **Fix CoC-at-POI bug** — critical for correct 1M confirmation logic
-3. **Backtesting iteration** — bar-by-bar walk-forward engine on historical data
-4. **Pro Trend multi-target exits** — trailing logic per strategy PDF
-5. **Visualization** — plot zones and trades on OHLC charts
+### COMPLETE — ready for live demo
+
+| Component | File | Status |
+|-----------|------|--------|
+| MT5 connection + login | `mt5_connector.py` | ✅ |
+| Historical data fetch (H4, H1, M15) | `mt5_connector.py` | ✅ |
+| Live data feed (all TFs) | `mt5_connector.py` | ✅ |
+| Signal generation (MTF PRO) | `mtf_pro_entry.py` | ✅ |
+| Order placement (buy/sell + SL/TP) | `mt5_connector.py` | ✅ |
+| Position sizing (% risk) | `position_manager.py` | ✅ |
+| Daily loss / max drawdown limits | `position_manager.py` | ✅ |
+| MT5 position sync (SL/TP close detection) | `trading_bot.py` | ✅ |
+| TP1 breakeven (modify SL on MT5) | `trading_bot.py` | ✅ |
+| Walk-forward backtest engine | `trading_bot.py` | ✅ |
+| Results saving (JSON) + logging | `trading_bot.py` | ✅ |
+
+### NOT BUILT (future work)
+
+| Feature | Notes |
+|---------|-------|
+| Chart visualization | Trade entries/exits on OHLC, equity curve |
+| 1H OB as entry filter | Architecture in place (`use_h1_ob: true`), needs testing |
+| Partial close at TP1 | Live mode uses SL-to-BE instead (simpler, no counter-order needed) |
+| More pairs | GBPUSD, USDCAD, USDJPY, XAUUSD all tested and rejected — see below |
+
+---
+
+## Rejected Pairs
+
+| Pair | Reason |
+|------|--------|
+| GBPUSD | 0 valid trades; 2022 crash left mitigated OBs; SLs 79–90 pips (filtered) |
+| USDJPY | BOJ interventions destroy OB zones; 0% WR in testing |
+| USDCAD | Choppy/ranging structure; only conf=33% signals that fail gate |
+| XAUUSD | EMA bias lags gold's sharp reversals; 4 consecutive losses in 2023 |
+
+---
+
+## Key Config Decisions
+
+- `use_short_direction: false` — SHORT entries tested and lost; LONG-only
+- `ct_min_score: 4` — prevents weak counter-trend entries in bear markets
+- `confidence ≥ 0.40` — in risk manager; effectively requires score ≥ 3
+- `d_fast_ema: 21 / d_slow_ema: 50` — faster than 50/100, catches reversals sooner
+- `use_h1_ob: false` — 1H OB architecture built but disabled; switching SL to
+  1H OB low worsened EURUSD 2024 from 50% WR to 25% WR; safe default is off
+
+---
+
+## v2 Architecture Note (1H Intermediate OB)
+
+The v2 branch adds a 1H OB layer between 4H zone and 15M entry.
+
+**Correct design (current):** 1H OB is a presence filter only — SL always
+anchors to 4H zone_low. When `use_h1_ob: true`, signals get an extra
+`'1H-OB'` confluence label but SL/TP are unchanged.
+
+**Broken design (fixed):** Earlier implementation switched `active_zone` to
+the 1H OB, making the 1H OB low the SL anchor. This widened TP targets and
+turned EURUSD 2024 winners into losses (25% WR vs 50% WR).
+
+To test the 1H OB filter: set `use_h1_ob: true` in config, run all 4 pairs,
+compare against the locked baselines above before enabling live.
 
 ---
 
@@ -146,40 +188,10 @@ trading bot h/
 
 | Task | File | Key Class/Method |
 |------|------|-----------------|
-| Detect swings | [src/analysis/swing_detection.py](src/analysis/swing_detection.py) | `SwingDetector.detect_swings()` |
-| Detect BoS | [src/analysis/break_of_structure.py](src/analysis/break_of_structure.py) | `BreakOfStructureDetector.detect_bos()` |
-| Detect CoC | [src/analysis/break_of_structure.py](src/analysis/break_of_structure.py) | `ChangeOfCharacterDetector.detect_coc()` |
-| Find zones | [src/analysis/zone_detection.py](src/analysis/zone_detection.py) | `ZoneDetector.detect_zones_from_swings()` |
-| Timeframe bias | [src/analysis/bias_analysis.py](src/analysis/bias_analysis.py) | `BiasAnalyzer.analyze_all_timeframes()` |
-| Generate signals | [src/strategies/counter_trend_entry.py](src/strategies/counter_trend_entry.py) | `CounterTrendEntryGenerator.generate_signals()` |
+| Generate signals | [src/strategies/mtf_pro_entry.py](src/strategies/mtf_pro_entry.py) | `MTFProEntryGenerator.generate_signals()` |
+| Fetch MT5 data | [src/data/mt5_connector.py](src/data/mt5_connector.py) | `MT5Connector.fetch_historical_range()` |
 | Risk / sizing | [src/risk/position_manager.py](src/risk/position_manager.py) | `RiskManager`, `PositionSizer` |
-| Main bot | [src/trading_bot.py](src/trading_bot.py) | `TradingBot`, `Backtester` |
-| Config | [config/config.yaml](config/config.yaml) | MT5 creds, symbols, risk params |
-
----
-
-## Running the Bot
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Backtest mode
-python -m src.trading_bot --mode backtest --symbol EURUSD --start 2023-01-01 --end 2024-12-31
-
-# Live mode (requires MT5 config filled in)
-python -m src.trading_bot --mode live --config config/config.yaml
-```
-
----
-
-## Important Notes
-
-- **MT5 credentials** must be set in `config/config.yaml` before live trading (`mt5.account`, `mt5.password`, `mt5.server`)
-- Strategy requires **5 timeframes** simultaneously: Weekly, Daily, 4H, 15M, 1M
-- Counter-trend entries trade **against** the weekly bias — lower probability, smaller targets
-- Pro-trend entries trade **with** the weekly bias — higher probability, extended targets
-- Minimum RR required: **2.0** (configurable in config)
-- Max concurrent trades: **3** (configurable)
-- Risk per trade: **1-2%** of account (configurable)
-- Special rule from PDF: when price is in a higher timeframe demand/supply, a 15M CoC alone (without waiting for 4H CoC) is sufficient to enter
+| Live loop + backtest | [src/trading_bot.py](src/trading_bot.py) | `TradingBot.run()`, `run_backtest()` |
+| Position sync | [src/trading_bot.py](src/trading_bot.py) | `_sync_positions_from_mt5()` |
+| TP1 breakeven | [src/trading_bot.py](src/trading_bot.py) | `_check_live_tp1()` |
+| Config | [config/config.yaml](config/config.yaml) | MT5 creds, symbols, locked params |
