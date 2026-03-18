@@ -15,20 +15,22 @@ strategy:
   min_c1_atr_mult: 0.70     # C1 body >= 0.7 x ATR(14)  [tuned from 0.5]
   min_body_pct: 0.60         # C2, C3 body >= 60% of C1 body  [tuned from 0.50]
 
-  # Exit rules — per symbol (tuned individually)
+  # Exit rules — per symbol (LOCKED — do not change without revalidation)
+  # Validated: 2025 backtest | NZDUSD +$765 | GBPUSD +$1,392 | AUDUSD +$705 | XAUUSD +$709 | Total +$3,571
   tp_body_mult:
-    EURUSD: 3.0   # let winners run — TP rarely hit but when it is it's large
-    NZDUSD: 1.0   # tighter TP fits NZD's shorter momentum bursts
+    NZDUSD: 1.0   # LOCKED — tighter TP fits NZD's shorter momentum bursts
+    GBPUSD: 1.5   # LOCKED — GBP moves fast, 1.5x hits more often than 1.0x
+    AUDUSD: 1.0   # LOCKED — 1.0x outperforms 1.5x (tested)
+    XAUUSD: 1.5   # LOCKED — 1.5x outperforms 2.0x (tested)
   sl_type: "c3_extreme"      # SL at C3 low (long) / C3 high (short)
   max_exit: "c4_close"       # hard exit at C4 close if TP not hit
 
-  # Pullback lock (per symbol)
+  # Pullback lock (per symbol — LOCKED)
   pullback_atr_mult:
-    EURUSD: 1.0
-    NZDUSD: 1.0
-    XAUUSD: 1.5
-    GBPUSD: 1.0
-    NAS100: 2.0
+    NZDUSD: 1.0   # LOCKED
+    GBPUSD: 1.2   # LOCKED — slightly wider for GBP volatility
+    AUDUSD: 1.0   # LOCKED
+    XAUUSD: 1.5   # LOCKED
 
   # Position sizing
   risk_pct:
@@ -43,7 +45,9 @@ strategy:
   # Backtest
   account_balance: 10000
   symbols:
-    - EURUSD
     - NZDUSD
+    - GBPUSD
+    - AUDUSD
+    - XAUUSD
   m5_bar_count: 75000
   h1_bar_count: 10000

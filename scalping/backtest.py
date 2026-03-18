@@ -6,7 +6,8 @@ Reads config from config/mt5.yaml and config/strategy.yaml
 import MetaTrader5 as mt5
 import pandas as pd
 import numpy as np
-import yaml, time
+import yaml, time, argparse
+from datetime import datetime
 from pathlib import Path
 
 # -- LOAD CONFIG ---------------------------------------------------------------
@@ -52,15 +53,22 @@ def connect():
     info = mt5.account_info()
     print(f"Connected: {info.login} | {info.server} | balance ${info.balance:,.0f}\n")
 
-def fetch(symbol, tf_key, n):
+def fetch(symbol, tf_key, date_from, date_to):
     mt5.symbol_select(symbol, True)
     time.sleep(0.5)
-    rates = mt5.copy_rates_from_pos(symbol, TF_MAP[tf_key], 0, n)
+    # calculate bars needed to reach date_from from today
+    days_back = (datetime.utcnow() - date_from).days + 10
+    bars = min(days_back * 24 * (12 if tf_key == "M5" else 1), 99_999)
+    rates = mt5.copy_rates_from_pos(symbol, TF_MAP[tf_key], 0, bars)
     if rates is None or len(rates) == 0:
         raise RuntimeError(f"No data for {symbol}: {mt5.last_error()}")
     df = pd.DataFrame(rates)
     df["time"] = pd.to_datetime(df["time"], unit="s", utc=True)
     df.set_index("time", inplace=True)
+    df = df[(df.index >= pd.Timestamp(date_from, tz="UTC")) &
+            (df.index <= pd.Timestamp(date_to,   tz="UTC"))]
+    if len(df) == 0:
+        raise RuntimeError(f"No data for {symbol} in range {date_from.date()} to {date_to.date()} — demo server may not have M5 history that far back")
     return df
 
 def build_bias(h1):
@@ -77,9 +85,11 @@ def build_bias(h1):
 # -- BACKTEST ------------------------------------------------------------------
 
 def run_backtest(symbol, m5, bias_df):
-    pullback_mult = S["pullback_atr_mult"].get(symbol, 1.0)
-    tp_mult       = TP_BODY_MULT.get(symbol, 1.5) if isinstance(TP_BODY_MULT, dict) else TP_BODY_MULT
-    risk_pct      = S["risk_pct"]["forex"]
+    pullback_mult  = S["pullback_atr_mult"].get(symbol, 1.0)
+    tp_mult        = TP_BODY_MULT.get(symbol, 1.5) if isinstance(TP_BODY_MULT, dict) else TP_BODY_MULT
+    is_gold        = symbol in ("XAUUSD", "XAGUSD")
+    risk_pct       = S["risk_pct"]["gold"] if is_gold else S["risk_pct"]["forex"]
+    contract_size  = 100 if is_gold else 100_000
 
     m5 = m5.copy()
     m5["atr"] = calc_atr(m5, ATR_PERIOD)
@@ -149,7 +159,7 @@ def run_backtest(symbol, m5, bias_df):
         if sl_dist == 0:
             continue
 
-        lot = max(0.01, round(balance * risk_pct / (sl_dist * 100_000), 2))
+        lot = max(0.01, round(balance * risk_pct / (sl_dist * contract_size), 2))
 
         if direction == "long":
             if   c4["low"]  <= sl: exit_p, result = sl, "SL"
@@ -161,7 +171,7 @@ def run_backtest(symbol, m5, bias_df):
             else:                  exit_p, result = c4["close"], "C4"
 
         pnl_pts = (exit_p - entry) if direction == "long" else (entry - exit_p)
-        pnl_usd = pnl_pts * lot * 100_000
+        pnl_usd = pnl_pts * lot * contract_size
         balance += pnl_usd
 
         if balance > peak: peak = balance
@@ -233,6 +243,15 @@ def print_detail(s):
 # -- MAIN ----------------------------------------------------------------------
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--start", default="2023-01-01", help="Start date YYYY-MM-DD")
+    parser.add_argument("--end",   default="2023-12-31", help="End date YYYY-MM-DD")
+    args = parser.parse_args()
+
+    date_from = datetime.strptime(args.start, "%Y-%m-%d")
+    date_to   = datetime.strptime(args.end,   "%Y-%m-%d")
+    print(f"Backtest window: {date_from.date()} → {date_to.date()}\n")
+
     connect()
 
     all_stats  = []
@@ -241,8 +260,8 @@ def main():
     for symbol in SYMBOLS:
         print(f"[{symbol}] Fetching...", end=" ", flush=True)
         try:
-            m5      = fetch(symbol, S["exec_tf"], M5_BARS)
-            h1      = fetch(symbol, S["bias_tf"],  H1_BARS)
+            m5      = fetch(symbol, S["exec_tf"], date_from, date_to)
+            h1      = fetch(symbol, S["bias_tf"],  date_from, date_to)
             bias_df = build_bias(h1)
             print(f"{len(m5)} bars  ({m5.index[0].date()} to {m5.index[-1].date()})")
         except RuntimeError as e:
