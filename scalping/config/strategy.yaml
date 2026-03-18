@@ -1,0 +1,49 @@
+strategy:
+  name: "3-Candle Scalper v2"
+
+  # Timeframes
+  exec_tf: "M5"
+  bias_tf: "H1"
+
+  # Sessions (UTC hours)
+  sessions:
+    - [7, 10]    # London open
+    - [12, 15]   # New York open
+
+  # Pattern filters
+  atr_period: 14
+  min_c1_atr_mult: 0.70     # C1 body >= 0.7 x ATR(14)  [tuned from 0.5]
+  min_body_pct: 0.60         # C2, C3 body >= 60% of C1 body  [tuned from 0.50]
+
+  # Exit rules — per symbol (tuned individually)
+  tp_body_mult:
+    EURUSD: 3.0   # let winners run — TP rarely hit but when it is it's large
+    NZDUSD: 1.0   # tighter TP fits NZD's shorter momentum bursts
+  sl_type: "c3_extreme"      # SL at C3 low (long) / C3 high (short)
+  max_exit: "c4_close"       # hard exit at C4 close if TP not hit
+
+  # Pullback lock (per symbol)
+  pullback_atr_mult:
+    EURUSD: 1.0
+    NZDUSD: 1.0
+    XAUUSD: 1.5
+    GBPUSD: 1.0
+    NAS100: 2.0
+
+  # Position sizing
+  risk_pct:
+    forex:   0.02    # 2% per trade
+    gold:    0.01    # 1% per trade
+    indices: 0.01    # 1% per trade
+
+  # Bias trend filter (1H EMA)
+  ema_fast: 50
+  ema_slow: 200
+
+  # Backtest
+  account_balance: 10000
+  symbols:
+    - EURUSD
+    - NZDUSD
+  m5_bar_count: 75000
+  h1_bar_count: 10000
