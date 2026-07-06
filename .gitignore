@@ -33,3 +33,5 @@ projects.json
 # Scalper runtime artifacts
 scalping/trader.log
 scalping/lock_state.json
+research/cache/
+research/portfolio_equity.csv
