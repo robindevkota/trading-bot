@@ -21,3 +21,15 @@ __pycache__/
 nul
 Thumbs.db
 .DS_Store
+
+# AI tooling caches (local only)
+chroma_db/
+code_graph_storage/
+.serena/
+.playwright-mcp/
+active_project.json
+projects.json
+
+# Scalper runtime artifacts
+scalping/trader.log
+scalping/lock_state.json

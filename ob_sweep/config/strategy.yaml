@@ -1,0 +1,48 @@
+strategy:
+  name: "OB + Liquidity Sweep"
+
+  # Sessions (UTC hours) — London open + New York open, dead zone skipped
+  sessions:
+    - [7,  11]   # London open
+    - [13, 17]   # New York open
+
+  # ── M5 LIVE PARAMS (LOCKED) ──────────────────────────────────────────────
+  # Validated: EURUSD + AUDUSD | Nov 2024 – Mar 2026 | 87 trades
+  # EURUSD: 67T  71.6% WR  PF 2.64  +$5,140  DD -2.0%
+  # AUDUSD: 20T  75.0% WR  PF 2.83  +$1,429  DD -2.0%
+  m5:
+    ob_lookback:      10
+    impulse_min_pips: 5.0
+    ob_max_age:       50    # ~4h on M5
+    wick_ratio_min:   0.10
+    rsi_length:       14
+    rsi_max_long:     45
+    tp_rr:            2.0
+    partial_pct:      50
+
+  # ── M15 VALIDATION PARAMS (LOCKED) ──────────────────────────────────────
+  # Used for 4-year backtest only — NOT for live trading
+  # Validated: EURUSD + AUDUSD | Mar 2022 – Mar 2026 | 123 trades
+  # EURUSD: 75T  57.3% WR  PF 1.34  +$2,332  DD -4.9%
+  # AUDUSD: 48T  50.0% WR  PF 1.15   +$793   DD -5.9%
+  # Confirms edge is real across 4 years / different market conditions
+  m15:
+    ob_lookback:      10
+    impulse_min_pips: 5.0
+    ob_max_age:       20    # ~5h on M15
+    wick_ratio_min:   0.30  # tighter than M5 — filters noisy M15 wicks
+    rsi_length:       14
+    rsi_max_long:     45
+    tp_rr:            2.0
+    partial_pct:      50
+
+  # Position sizing
+  risk_pct: 0.01
+  account_balance: 10000
+
+  # LOCKED pairs — validated on M5
+  # NZDUSD rejected: 10 trades, 40% WR, PF 0.99
+  # USDCHF rejected: 52 trades, 51.9% WR, PF 0.81 — avg win < avg loss
+  symbols:
+    - EURUSD
+    - AUDUSD

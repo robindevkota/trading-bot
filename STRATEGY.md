@@ -1,5 +1,14 @@
 # MTF PRO Strategy — Trading Guide
+python -m src.trading_bot --mode backtest --symbol EURUSD --start 2026-01-01 --end 2026-03-20 --fresh
 
+
+cd "C:\Users\user\Desktop\trading bot h"
+python -m src.trading_bot --mode live
+And for the scalper in a second CMD window:
+
+
+cd "C:\Users\user\Desktop\trading bot h\scalping"
+python live_trader.py
 **Version:** 2.0 — Python / MT5 (branch: `v2-1h-intermediate`)
 **Pairs:** EURUSD · AUDUSD · NZDUSD · USDCHF (all LOCKED)
 **Implementation:** `src/strategies/mtf_pro_entry.py`

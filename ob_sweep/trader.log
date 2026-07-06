@@ -1,0 +1,343 @@
+2026-03-23 21:13:15  INFO      ============================================================
+2026-03-23 21:13:15  INFO        OB + Liquidity Sweep — Live Trader
+2026-03-23 21:13:15  INFO        Pairs    : ['EURUSD', 'AUDUSD']
+2026-03-23 21:13:15  INFO        Sessions : London 07-11 UTC | NY 13-17 UTC
+2026-03-23 21:13:15  INFO        Params   : wick>=0.1  RSI<=45  impulse>=5.0pip  TP=2.0R  partial=50%
+2026-03-23 21:13:15  INFO        DRY RUN  : False
+2026-03-23 21:13:15  INFO      ============================================================
+2026-03-23 21:13:15  INFO      Connected: 5047964854 | MetaQuotes-Demo | Balance: $100,000.00 | Equity: $100,000.00
+2026-03-23 21:13:16  INFO      State loaded: {'EURUSD': None, 'AUDUSD': None}
+2026-03-23 21:13:16  INFO      Next bar in 103s — sleeping...
+2026-03-23 21:15:02  INFO      --- Bar 2026-03-23 15:30 UTC ---
+2026-03-23 21:15:02  INFO      [EURUSD] No signal
+2026-03-23 21:15:02  INFO      [AUDUSD] No signal
+2026-03-23 21:15:02  INFO      Next bar in 298s — sleeping...
+2026-03-23 21:20:02  INFO      --- Bar 2026-03-23 15:35 UTC ---
+2026-03-23 21:20:02  INFO      [EURUSD] No signal
+2026-03-23 21:20:02  INFO      [AUDUSD] No signal
+2026-03-23 21:20:02  INFO      Next bar in 298s — sleeping...
+2026-03-23 21:21:57  INFO      Trader stopped by user.
+2026-03-23 21:22:01  INFO      ============================================================
+2026-03-23 21:22:01  INFO        OB + Liquidity Sweep — Live Trader
+2026-03-23 21:22:01  INFO        Pairs    : ['EURUSD', 'AUDUSD']
+2026-03-23 21:22:01  INFO        Sessions : London 07-11 UTC | NY 13-17 UTC
+2026-03-23 21:22:01  INFO        Params   : wick>=0.1  RSI<=45  impulse>=5.0pip  TP=2.0R  partial=50%
+2026-03-23 21:22:01  INFO        DRY RUN  : False
+2026-03-23 21:22:01  INFO      ============================================================
+2026-03-23 21:22:01  INFO      Connected: 5047964854 | MetaQuotes-Demo | Balance: $100,000.00 | Equity: $100,000.00
+2026-03-23 21:22:02  INFO      State loaded: {'EURUSD': None, 'AUDUSD': None}
+2026-03-23 21:22:02  INFO      Next bar in 178s — sleeping...
+2026-03-23 21:25:02  INFO      --- Bar 2026-03-23 15:40 UTC ---
+2026-03-23 21:25:02  INFO      [EURUSD] No signal
+2026-03-23 21:25:02  INFO      [AUDUSD] No signal
+2026-03-23 21:25:02  INFO      Next bar in 298s — sleeping...
+2026-03-23 21:30:02  INFO      --- Bar 2026-03-23 15:45 UTC ---
+2026-03-23 21:30:02  INFO      [EURUSD] No signal
+2026-03-23 21:30:02  INFO      [AUDUSD] No signal
+2026-03-23 21:30:02  INFO      Next bar in 298s — sleeping...
+2026-03-23 21:35:02  INFO      --- Bar 2026-03-23 15:50 UTC ---
+2026-03-23 21:35:02  INFO      [EURUSD] No signal
+2026-03-23 21:35:02  INFO      [AUDUSD] No signal
+2026-03-23 21:35:02  INFO      Next bar in 298s — sleeping...
+2026-03-23 21:40:02  INFO      --- Bar 2026-03-23 15:55 UTC ---
+2026-03-23 21:40:02  INFO      [EURUSD] No signal
+2026-03-23 21:40:02  INFO      [AUDUSD] No signal
+2026-03-23 21:40:02  INFO      Next bar in 298s — sleeping...
+2026-03-23 21:45:02  INFO      --- Bar 2026-03-23 16:00 UTC ---
+2026-03-23 21:45:02  INFO      [EURUSD] No signal
+2026-03-23 21:45:02  INFO      [AUDUSD] No signal
+2026-03-23 21:45:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 20:15:43  INFO      ============================================================
+2026-03-24 20:15:43  INFO        OB + Liquidity Sweep — Live Trader
+2026-03-24 20:15:43  INFO        Pairs    : ['EURUSD', 'AUDUSD']
+2026-03-24 20:15:43  INFO        Sessions : London 07-11 UTC | NY 13-17 UTC
+2026-03-24 20:15:43  INFO        Params   : wick>=0.1  RSI<=45  impulse>=5.0pip  TP=2.0R  partial=50%
+2026-03-24 20:15:43  INFO        DRY RUN  : False
+2026-03-24 20:15:43  INFO      ============================================================
+2026-03-24 20:16:09  INFO      Connected: 5047964854 | MetaQuotes-Demo | Balance: $100,000.00 | Equity: $100,000.00
+2026-03-24 20:16:10  INFO      State loaded: {'EURUSD': None, 'AUDUSD': None}
+2026-03-24 20:16:10  INFO      Next bar in 230s — sleeping...
+2026-03-24 20:20:02  INFO      --- Bar 2026-03-24 14:35 UTC ---
+2026-03-24 20:20:02  INFO      [EURUSD] No signal
+2026-03-24 20:20:02  INFO      [AUDUSD] No signal
+2026-03-24 20:20:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 20:25:02  INFO      --- Bar 2026-03-24 14:40 UTC ---
+2026-03-24 20:25:02  INFO      [EURUSD] No signal
+2026-03-24 20:25:02  INFO      [AUDUSD] No signal
+2026-03-24 20:25:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 20:30:02  INFO      --- Bar 2026-03-24 14:45 UTC ---
+2026-03-24 20:30:02  INFO      [EURUSD] No signal
+2026-03-24 20:30:02  INFO      [AUDUSD] No signal
+2026-03-24 20:30:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 20:35:02  INFO      --- Bar 2026-03-24 14:50 UTC ---
+2026-03-24 20:35:02  INFO      [EURUSD] No signal
+2026-03-24 20:35:02  INFO      [AUDUSD] No signal
+2026-03-24 20:35:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 20:40:02  INFO      --- Bar 2026-03-24 14:55 UTC ---
+2026-03-24 20:40:02  INFO      [EURUSD] No signal
+2026-03-24 20:40:02  INFO      [AUDUSD] No signal
+2026-03-24 20:40:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 20:45:02  INFO      --- Bar 2026-03-24 15:00 UTC ---
+2026-03-24 20:45:02  INFO      [EURUSD] No signal
+2026-03-24 20:45:02  INFO      [AUDUSD] No signal
+2026-03-24 20:45:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 20:50:02  INFO      --- Bar 2026-03-24 15:05 UTC ---
+2026-03-24 20:50:02  INFO      [EURUSD] No signal
+2026-03-24 20:50:02  INFO      [AUDUSD] No signal
+2026-03-24 20:50:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 20:55:02  INFO      --- Bar 2026-03-24 15:10 UTC ---
+2026-03-24 20:55:02  INFO      [EURUSD] No signal
+2026-03-24 20:55:02  INFO      [AUDUSD] No signal
+2026-03-24 20:55:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 21:00:02  INFO      --- Bar 2026-03-24 15:15 UTC ---
+2026-03-24 21:00:02  INFO      [EURUSD] No signal
+2026-03-24 21:00:02  INFO      [AUDUSD] No signal
+2026-03-24 21:00:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 21:05:02  INFO      --- Bar 2026-03-24 15:20 UTC ---
+2026-03-24 21:05:02  INFO      [EURUSD] No signal
+2026-03-24 21:05:02  INFO      [AUDUSD] No signal
+2026-03-24 21:05:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 21:10:02  INFO      --- Bar 2026-03-24 15:25 UTC ---
+2026-03-24 21:10:02  INFO      [EURUSD] No signal
+2026-03-24 21:10:02  INFO      [AUDUSD] No signal
+2026-03-24 21:10:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 21:15:02  INFO      --- Bar 2026-03-24 15:30 UTC ---
+2026-03-24 21:15:02  INFO      [EURUSD] No signal
+2026-03-24 21:15:02  INFO      [AUDUSD] No signal
+2026-03-24 21:15:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 21:20:02  INFO      --- Bar 2026-03-24 15:35 UTC ---
+2026-03-24 21:20:02  INFO      [EURUSD] No signal
+2026-03-24 21:20:02  INFO      [AUDUSD] No signal
+2026-03-24 21:20:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 21:25:02  INFO      --- Bar 2026-03-24 15:40 UTC ---
+2026-03-24 21:25:02  INFO      [EURUSD] No signal
+2026-03-24 21:25:02  INFO      [AUDUSD] No signal
+2026-03-24 21:25:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 21:30:02  INFO      --- Bar 2026-03-24 15:45 UTC ---
+2026-03-24 21:30:02  INFO      [EURUSD] No signal
+2026-03-24 21:30:02  INFO      [AUDUSD] No signal
+2026-03-24 21:30:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 21:35:02  INFO      --- Bar 2026-03-24 15:50 UTC ---
+2026-03-24 21:35:02  INFO      [EURUSD] No signal
+2026-03-24 21:35:02  INFO      [AUDUSD] No signal
+2026-03-24 21:35:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 21:40:02  INFO      --- Bar 2026-03-24 15:55 UTC ---
+2026-03-24 21:40:02  INFO      [EURUSD] No signal
+2026-03-24 21:40:02  INFO      [AUDUSD] No signal
+2026-03-24 21:40:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 21:45:02  INFO      --- Bar 2026-03-24 16:00 UTC ---
+2026-03-24 21:45:02  INFO      [EURUSD] No signal
+2026-03-24 21:45:02  INFO      [AUDUSD] No signal
+2026-03-24 21:45:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 21:50:02  INFO      --- Bar 2026-03-24 16:05 UTC ---
+2026-03-24 21:50:02  INFO      [EURUSD] No signal
+2026-03-24 21:50:02  INFO      [AUDUSD] No signal
+2026-03-24 21:50:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 21:55:02  INFO      --- Bar 2026-03-24 16:10 UTC ---
+2026-03-24 21:55:02  INFO      [EURUSD] No signal
+2026-03-24 21:55:02  INFO      [AUDUSD] No signal
+2026-03-24 21:55:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 22:00:02  INFO      --- Bar 2026-03-24 16:15 UTC ---
+2026-03-24 22:00:02  INFO      [EURUSD] No signal
+2026-03-24 22:00:02  INFO      [AUDUSD] No signal
+2026-03-24 22:00:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 22:05:02  INFO      --- Bar 2026-03-24 16:20 UTC ---
+2026-03-24 22:05:02  INFO      [EURUSD] No signal
+2026-03-24 22:05:02  INFO      [AUDUSD] No signal
+2026-03-24 22:05:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 22:10:08  INFO      --- Bar 2026-03-24 16:25 UTC ---
+2026-03-24 22:10:08  INFO      [EURUSD] No signal
+2026-03-24 22:10:08  INFO      [AUDUSD] No signal
+2026-03-24 22:10:08  INFO      Next bar in 292s — sleeping...
+2026-03-24 22:15:02  INFO      --- Bar 2026-03-24 16:30 UTC ---
+2026-03-24 22:15:02  INFO      [EURUSD] No signal
+2026-03-24 22:15:02  INFO      [AUDUSD] No signal
+2026-03-24 22:15:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 22:20:02  INFO      --- Bar 2026-03-24 16:35 UTC ---
+2026-03-24 22:20:02  INFO      [EURUSD] No signal
+2026-03-24 22:20:02  INFO      [AUDUSD] No signal
+2026-03-24 22:20:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 22:25:02  INFO      --- Bar 2026-03-24 16:40 UTC ---
+2026-03-24 22:25:02  INFO      [EURUSD] No signal
+2026-03-24 22:25:02  INFO      [AUDUSD] No signal
+2026-03-24 22:25:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 22:30:02  INFO      --- Bar 2026-03-24 16:45 UTC ---
+2026-03-24 22:30:02  INFO      [EURUSD] No signal
+2026-03-24 22:30:02  INFO      [AUDUSD] No signal
+2026-03-24 22:30:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 22:35:02  INFO      --- Bar 2026-03-24 16:50 UTC ---
+2026-03-24 22:35:02  INFO      [EURUSD] No signal
+2026-03-24 22:35:02  INFO      [AUDUSD] No signal
+2026-03-24 22:35:02  INFO      Next bar in 298s — sleeping...
+2026-03-24 22:40:02  INFO      --- Bar 2026-03-24 16:55 UTC ---
+2026-03-24 22:40:02  INFO      [EURUSD] No signal
+2026-03-24 22:40:02  INFO      [AUDUSD] No signal
+2026-03-24 22:40:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 12:28:53  INFO      ============================================================
+2026-03-25 12:28:53  INFO        OB + Liquidity Sweep — Live Trader
+2026-03-25 12:28:53  INFO        Pairs    : ['EURUSD', 'AUDUSD']
+2026-03-25 12:28:53  INFO        Sessions : London 07-11 UTC | NY 13-17 UTC
+2026-03-25 12:28:53  INFO        Params   : wick>=0.1  RSI<=45  impulse>=5.0pip  TP=2.0R  partial=50%
+2026-03-25 12:28:53  INFO        DRY RUN  : False
+2026-03-25 12:28:53  INFO      ============================================================
+2026-03-25 12:28:53  INFO      Connected: 5047964854 | MetaQuotes-Demo | Balance: $100,000.00 | Equity: $100,000.00
+2026-03-25 12:28:54  INFO      State loaded: {'EURUSD': None, 'AUDUSD': None}
+2026-03-25 12:28:54  INFO      Next bar in 65s — sleeping...
+2026-03-25 12:30:02  INFO      --- Bar 2026-03-25 06:45 UTC ---
+2026-03-25 12:30:02  INFO      [EURUSD] Out of session — skip
+2026-03-25 12:30:02  INFO      [AUDUSD] Out of session — skip
+2026-03-25 12:30:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 12:35:02  INFO      --- Bar 2026-03-25 06:50 UTC ---
+2026-03-25 12:35:02  INFO      [EURUSD] Out of session — skip
+2026-03-25 12:35:02  INFO      [AUDUSD] Out of session — skip
+2026-03-25 12:35:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 12:40:02  INFO      --- Bar 2026-03-25 06:55 UTC ---
+2026-03-25 12:40:02  INFO      [EURUSD] Out of session — skip
+2026-03-25 12:40:02  INFO      [AUDUSD] Out of session — skip
+2026-03-25 12:40:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 12:45:02  INFO      --- Bar 2026-03-25 07:00 UTC ---
+2026-03-25 12:45:02  INFO      [EURUSD] No signal
+2026-03-25 12:45:02  INFO      [AUDUSD] No signal
+2026-03-25 12:45:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 12:50:02  INFO      --- Bar 2026-03-25 07:05 UTC ---
+2026-03-25 12:50:02  INFO      [EURUSD] No signal
+2026-03-25 12:50:02  INFO      [AUDUSD] No signal
+2026-03-25 12:50:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 12:55:02  INFO      --- Bar 2026-03-25 07:10 UTC ---
+2026-03-25 12:55:02  INFO      [EURUSD] No signal
+2026-03-25 12:55:02  INFO      [AUDUSD] No signal
+2026-03-25 12:55:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 13:00:02  INFO      --- Bar 2026-03-25 07:15 UTC ---
+2026-03-25 13:00:02  INFO      [EURUSD] No signal
+2026-03-25 13:00:02  INFO      [AUDUSD] No signal
+2026-03-25 13:00:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 13:05:02  INFO      --- Bar 2026-03-25 07:20 UTC ---
+2026-03-25 13:05:02  INFO      [EURUSD] No signal
+2026-03-25 13:05:02  INFO      [AUDUSD] No signal
+2026-03-25 13:05:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 13:10:02  INFO      --- Bar 2026-03-25 07:25 UTC ---
+2026-03-25 13:10:02  INFO      [EURUSD] No signal
+2026-03-25 13:10:02  INFO      [AUDUSD] No signal
+2026-03-25 13:10:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 13:15:02  INFO      --- Bar 2026-03-25 07:30 UTC ---
+2026-03-25 13:15:02  INFO      [EURUSD] No signal
+2026-03-25 13:15:02  INFO      [AUDUSD] No signal
+2026-03-25 13:15:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 13:20:02  INFO      --- Bar 2026-03-25 07:35 UTC ---
+2026-03-25 13:20:02  INFO      [EURUSD] No signal
+2026-03-25 13:20:02  INFO      [AUDUSD] No signal
+2026-03-25 13:20:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 13:25:02  INFO      --- Bar 2026-03-25 07:40 UTC ---
+2026-03-25 13:25:02  INFO      [EURUSD] No signal
+2026-03-25 13:25:02  INFO      [AUDUSD] No signal
+2026-03-25 13:25:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 13:30:02  INFO      --- Bar 2026-03-25 07:45 UTC ---
+2026-03-25 13:30:02  INFO      [EURUSD] No signal
+2026-03-25 13:30:02  INFO      [AUDUSD] No signal
+2026-03-25 13:30:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 13:35:02  INFO      --- Bar 2026-03-25 07:50 UTC ---
+2026-03-25 13:35:02  INFO      [EURUSD] No signal
+2026-03-25 13:35:02  INFO      [AUDUSD] No signal
+2026-03-25 13:35:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 13:40:02  INFO      --- Bar 2026-03-25 07:55 UTC ---
+2026-03-25 13:40:02  INFO      [EURUSD] No signal
+2026-03-25 13:40:02  INFO      [AUDUSD] No signal
+2026-03-25 13:40:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 13:45:02  INFO      --- Bar 2026-03-25 08:00 UTC ---
+2026-03-25 13:45:02  INFO      [EURUSD] No signal
+2026-03-25 13:45:02  INFO      [AUDUSD] No signal
+2026-03-25 13:45:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 13:50:02  INFO      --- Bar 2026-03-25 08:05 UTC ---
+2026-03-25 13:50:02  INFO      [EURUSD] No signal
+2026-03-25 13:50:02  INFO      [AUDUSD] No signal
+2026-03-25 13:50:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 13:55:02  INFO      --- Bar 2026-03-25 08:10 UTC ---
+2026-03-25 13:55:02  INFO      [EURUSD] No signal
+2026-03-25 13:55:02  INFO      [AUDUSD] No signal
+2026-03-25 13:55:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 14:00:02  INFO      --- Bar 2026-03-25 08:15 UTC ---
+2026-03-25 14:00:02  INFO      [EURUSD] No signal
+2026-03-25 14:00:02  INFO      [AUDUSD] No signal
+2026-03-25 14:00:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 14:05:02  INFO      --- Bar 2026-03-25 08:20 UTC ---
+2026-03-25 14:05:02  INFO      [EURUSD] No signal
+2026-03-25 14:05:02  INFO      [AUDUSD] No signal
+2026-03-25 14:05:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 14:10:02  INFO      --- Bar 2026-03-25 08:25 UTC ---
+2026-03-25 14:10:02  INFO      [EURUSD] No signal
+2026-03-25 14:10:02  INFO      [AUDUSD] No signal
+2026-03-25 14:10:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 14:15:02  INFO      --- Bar 2026-03-25 08:30 UTC ---
+2026-03-25 14:15:02  INFO      [EURUSD] No signal
+2026-03-25 14:15:02  INFO      [AUDUSD] No signal
+2026-03-25 14:15:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 14:20:02  INFO      --- Bar 2026-03-25 08:35 UTC ---
+2026-03-25 14:20:02  INFO      [EURUSD] No signal
+2026-03-25 14:20:02  INFO      [AUDUSD] No signal
+2026-03-25 14:20:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 14:25:02  INFO      --- Bar 2026-03-25 08:40 UTC ---
+2026-03-25 14:25:02  INFO      [EURUSD] No signal
+2026-03-25 14:25:02  INFO      [AUDUSD] No signal
+2026-03-25 14:25:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 14:30:02  INFO      --- Bar 2026-03-25 08:45 UTC ---
+2026-03-25 14:30:02  INFO      [EURUSD] No signal
+2026-03-25 14:30:02  INFO      [AUDUSD] No signal
+2026-03-25 14:30:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 14:35:02  INFO      --- Bar 2026-03-25 08:50 UTC ---
+2026-03-25 14:35:02  INFO      [EURUSD] No signal
+2026-03-25 14:35:02  INFO      [AUDUSD] No signal
+2026-03-25 14:35:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 14:40:02  INFO      --- Bar 2026-03-25 08:55 UTC ---
+2026-03-25 14:40:02  INFO      [EURUSD] No signal
+2026-03-25 14:40:02  INFO      [AUDUSD] No signal
+2026-03-25 14:40:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 14:45:02  INFO      --- Bar 2026-03-25 09:00 UTC ---
+2026-03-25 14:45:02  INFO      [EURUSD] No signal
+2026-03-25 14:45:02  INFO      [AUDUSD] No signal
+2026-03-25 14:45:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 14:50:02  INFO      --- Bar 2026-03-25 09:05 UTC ---
+2026-03-25 14:50:02  INFO      [EURUSD] No signal
+2026-03-25 14:50:02  INFO      [AUDUSD] No signal
+2026-03-25 14:50:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 20:54:10  INFO      ============================================================
+2026-03-25 20:54:10  INFO        OB + Liquidity Sweep — Live Trader
+2026-03-25 20:54:10  INFO        Pairs    : ['EURUSD', 'AUDUSD']
+2026-03-25 20:54:10  INFO        Sessions : London 07-11 UTC | NY 13-17 UTC
+2026-03-25 20:54:10  INFO        Params   : wick>=0.1  RSI<=45  impulse>=5.0pip  TP=2.0R  partial=50%
+2026-03-25 20:54:10  INFO        DRY RUN  : False
+2026-03-25 20:54:10  INFO      ============================================================
+2026-03-25 20:54:10  INFO      Connected: 5047964854 | MetaQuotes-Demo | Balance: $100,000.00 | Equity: $100,000.00
+2026-03-25 20:54:11  INFO      State loaded: {'EURUSD': None, 'AUDUSD': None}
+2026-03-25 20:54:11  INFO      Next bar in 49s — sleeping...
+2026-03-25 20:55:02  INFO      --- Bar 2026-03-25 15:10 UTC ---
+2026-03-25 20:55:02  INFO      [EURUSD] No signal
+2026-03-25 20:55:02  INFO      [AUDUSD] No signal
+2026-03-25 20:55:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 21:00:02  INFO      --- Bar 2026-03-25 15:15 UTC ---
+2026-03-25 21:00:02  INFO      [EURUSD] No signal
+2026-03-25 21:00:02  INFO      [AUDUSD] No signal
+2026-03-25 21:00:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 21:05:02  INFO      --- Bar 2026-03-25 15:20 UTC ---
+2026-03-25 21:05:02  INFO      [EURUSD] No signal
+2026-03-25 21:05:02  INFO      [AUDUSD] No signal
+2026-03-25 21:05:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 21:10:02  INFO      --- Bar 2026-03-25 15:25 UTC ---
+2026-03-25 21:10:02  INFO      [EURUSD] No signal
+2026-03-25 21:10:02  INFO      [AUDUSD] No signal
+2026-03-25 21:10:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 21:15:02  INFO      --- Bar 2026-03-25 15:30 UTC ---
+2026-03-25 21:15:02  INFO      [EURUSD] No signal
+2026-03-25 21:15:02  INFO      [AUDUSD] No signal
+2026-03-25 21:15:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 21:20:02  INFO      --- Bar 2026-03-25 15:35 UTC ---
+2026-03-25 21:20:02  INFO      [EURUSD] No signal
+2026-03-25 21:20:02  INFO      [AUDUSD] No signal
+2026-03-25 21:20:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 21:25:02  INFO      --- Bar 2026-03-25 15:40 UTC ---
+2026-03-25 21:25:02  INFO      [EURUSD] No signal
+2026-03-25 21:25:02  INFO      [AUDUSD] No signal
+2026-03-25 21:25:02  INFO      Next bar in 298s — sleeping...
+2026-03-25 21:30:02  INFO      --- Bar 2026-03-25 15:45 UTC ---
+2026-03-25 21:30:02  INFO      [EURUSD] No signal
+2026-03-25 21:30:02  INFO      [AUDUSD] No signal
+2026-03-25 21:30:02  INFO      Next bar in 298s — sleeping...

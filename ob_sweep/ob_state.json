@@ -1,0 +1,18 @@
+{
+  "EURUSD": {
+    "ticket": null,
+    "entry": null,
+    "tp1": null,
+    "tp2": null,
+    "sl_be": null,
+    "partial_done": false
+  },
+  "AUDUSD": {
+    "ticket": null,
+    "entry": null,
+    "tp1": null,
+    "tp2": null,
+    "sl_be": null,
+    "partial_done": false
+  }
+}

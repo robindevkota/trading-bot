@@ -18,6 +18,17 @@ Entry scoring (require ≥ min_entry_score for pro-trend, ≥ ct_min_score for c
   EMA20  (+1): 15M wick to EMA20 with close-back (only if sweep didn't fire).
   Flip   (+1): OB zone coincides with a previous structural swing level.
 
+v3 — Photon LQ entry models (all default OFF; enable via config):
+  HTFSweep (+2, use_htf_sweep):  15M bar wicks through the 4H zone's own
+               low/high (the HTF structural level) and body-closes back inside.
+               Photon EM 1 / EM 4 — "HTF Leg / POI Sweep".
+  EqL bonus (+1, use_eql_bonus): the level taken by the Sweep model is an
+               equal-lows/highs cluster (2+ swing points within eql_tol_pips) —
+               engineered liquidity. Photon EM 2b — "Equal Lows/Highs".
+  Inducement filter (require_inducement): only allow entry if price built AND
+               swept a pullback swing (PBID) on the near side of the zone before
+               arriving. Photon EM 2a — inducement/trap requirement.
+
 Stop Loss  : structural — below OB zone_low (LONG) with ATR buffer
 TP1 / TP2  : 1.5R / 3.0R  (close 50% at TP1, move SL to breakeven, run TP2)
 """
@@ -73,6 +84,13 @@ class MTFProEntryGenerator:
         'min_wick_pips':      5,
         'require_body_close': True,
         'body_close_pct':     0.50,
+
+        # v3 — Photon LQ entry models (all default OFF)
+        'use_htf_sweep':       False,  # EM4: sweep of the 4H zone's own low/high (+2)
+        'use_eql_bonus':       False,  # EM2b: swept level is equal lows/highs (+1)
+        'eql_tol_pips':        3,      # cluster tolerance for equal lows/highs
+        'require_inducement':  False,  # EM2a: PBID must be built + swept before entry
+        'inducement_lookback': 48,     # 15M bars (~12h) to search for inducement swing
 
         # RSI gates (15M)
         'rsi_period':    14,
@@ -244,11 +262,18 @@ class MTFProEntryGenerator:
                 if h1_active:
                     using_h1_ob = True   # label only — active_zone unchanged
 
+        # ── v3 Inducement filter (Photon EM2a): PBID built + swept before entry ──
+        if self.config.get('require_inducement', False):
+            if not self._inducement_swept(m15_df, active_zone, direction):
+                return None, 0
+
         # ── Flip zone bonus ──
-        score = 1 if self._is_flip_zone(h4_df, active_zone, direction) else 0
+        is_flip = self._is_flip_zone(h4_df, active_zone, direction)
+        score = 1 if is_flip else 0
         # Note: 1H OB does NOT add to score — it is a presence filter only.
         # SL is always anchored to the 4H zone regardless of 1H OB presence.
 
+        eql_fired = False
         candidates: List[Tuple[int, EntrySignal]] = []
 
         # ── CHoCH (+2): proper change of character ──
@@ -271,6 +296,18 @@ class MTFProEntryGenerator:
             if sweep:
                 score += 2
                 candidates.append((2, sweep))
+                # v3 EqL bonus (+1): swept level is an equal-lows/highs cluster
+                if (self.config.get('use_eql_bonus', False)
+                        and getattr(sweep, 'swept_eql', False)):
+                    score += 1
+                    eql_fired = True
+
+        # ── v3 HTF POI sweep (+2): sweep of the 4H zone's own boundary (EM4) ──
+        if self.config.get('use_htf_sweep', False):
+            hsw = self._try_htf_sweep(symbol, h4_df, m15_df, direction, active_zone)
+            if hsw:
+                score += 2
+                candidates.append((2, hsw))
 
         # ── EMA20 bounce (+1): only if sweep didn't fire ──
         if self.config.get('use_ema_bounce', True):
@@ -304,7 +341,8 @@ class MTFProEntryGenerator:
             ['1D-bias', '4H-OB']
             + (['1H-OB'] if using_h1_ob else [])
             + [f'15M-{getattr(s, "phase", "?").split("-")[-1]}' for _, s in candidates]
-            + (['flip-zone'] if score > sum(p for p, _ in candidates) else [])
+            + (['flip-zone'] if is_flip else [])
+            + (['eql-sweep'] if eql_fired else [])
         )
 
         return best_sig, score
@@ -837,12 +875,46 @@ class MTFProEntryGenerator:
         else:
             sl_anchor = max(wick_extreme, zone['high'])
 
-        return self._build_signal(
+        sig = self._build_signal(
             symbol, m15_df, h4_df, bias, zone,
             entry_price=bar_c,
             sl_anchor=sl_anchor,
             model='Sweep',
         )
+        # v3 EqL (Photon EM2b): tag if the swept level is an equal-lows/highs
+        # cluster — engineered liquidity is a higher-probability sweep.
+        if sig is not None and self.config.get('use_eql_bonus', False):
+            sig.swept_eql = self._is_equal_level(m15_df, swept_level, bias)
+        return sig
+
+    def _is_equal_level(self, m15_df: pd.DataFrame,
+                        level: float,
+                        bias: SignalDirection) -> bool:
+        """
+        True if `level` is part of an equal-lows (LONG) / equal-highs (SHORT)
+        cluster: 2+ confirmed 15M swing points within eql_tol_pips of it.
+        """
+        hc = 'high' if 'high' in m15_df.columns else 'High'
+        lc = 'low'  if 'low'  in m15_df.columns else 'Low'
+        col    = lc if bias == SignalDirection.LONG else hc
+        pivot  = 3
+        lookbk = min(30, len(m15_df) - pivot - 2)
+        n      = len(m15_df)
+        tol    = self.config.get('eql_tol_pips', 3) * self.config['pip_size']
+
+        hits = 0
+        for i in range(n - pivot - 1, max(n - lookbk, pivot) - 1, -1):
+            if i < pivot or i >= n - pivot:
+                continue
+            v      = float(m15_df[col].iloc[i])
+            window = m15_df[col].iloc[i - pivot: i + pivot + 1]
+            is_swing = (v == float(window.min()) if bias == SignalDirection.LONG
+                        else v == float(window.max()))
+            if is_swing and abs(v - level) <= tol:
+                hits += 1
+                if hits >= 2:
+                    return True
+        return False
 
     def _swing_levels(self, m15_df: pd.DataFrame) -> Dict:
         """Find recent SSL (swing lows) and BSL (swing highs) on 15M."""
@@ -868,6 +940,111 @@ class MTFProEntryGenerator:
             'bsl': sorted(set(bsl), key=lambda x: abs(x - last))[:5],
             'ssl': sorted(set(ssl), key=lambda x: abs(x - last))[:5],
         }
+
+    # ------------------------------------------------------------------ #
+    # v3 Entry Model: HTF POI Sweep (+2 pts) — Photon EM 1 / EM 4        #
+    # ------------------------------------------------------------------ #
+
+    def _try_htf_sweep(self, symbol: str,
+                       h4_df: pd.DataFrame, m15_df: pd.DataFrame,
+                       bias: SignalDirection,
+                       zone: Dict) -> Optional[EntrySignal]:
+        """
+        Sweep of the 4H zone's OWN structural boundary (Photon "HTF Leg/POI
+        Sweep"). The 15M bar wicks through the zone low (LONG) / high (SHORT)
+        by ≥ min_wick_pips and body-closes back inside the zone.
+
+        This is distinct from _try_sweep, which only sweeps recent 15M swing
+        levels — here the liquidity taken is the HTF level itself, the
+        highest-quality sweep in the Photon taxonomy.
+
+        SL anchors to the wick extreme (below the swept HTF level).
+        """
+        hc = 'high'  if 'high'  in m15_df.columns else 'High'
+        lc = 'low'   if 'low'   in m15_df.columns else 'Low'
+        cc = 'close' if 'close' in m15_df.columns else 'Close'
+        oc = 'open'  if 'open'  in m15_df.columns else 'Open'
+
+        bar     = m15_df.iloc[-1]
+        bar_h   = float(bar[hc]);  bar_l = float(bar[lc])
+        bar_c   = float(bar[cc]);  bar_o = float(bar[oc])
+        bar_rng = bar_h - bar_l
+
+        min_wick = self.config['min_wick_pips'] * self.config['pip_size']
+        body_req = self.config['require_body_close']
+        body_pct = self.config['body_close_pct']
+
+        if bias == SignalDirection.LONG:
+            if not (bar_l <= zone['low'] - min_wick and bar_c > zone['low']):
+                return None
+            if body_req and bar_rng > 0 and abs(bar_c - bar_o) / bar_rng < body_pct:
+                return None
+            sl_anchor = bar_l
+        else:
+            if not (bar_h >= zone['high'] + min_wick and bar_c < zone['high']):
+                return None
+            if body_req and bar_rng > 0 and abs(bar_c - bar_o) / bar_rng < body_pct:
+                return None
+            sl_anchor = bar_h
+
+        return self._build_signal(
+            symbol, m15_df, h4_df, bias, zone,
+            entry_price=bar_c,
+            sl_anchor=sl_anchor,
+            model='HTFSweep',
+        )
+
+    # ------------------------------------------------------------------ #
+    # v3 Filter: Inducement built + swept (Photon EM 2a "PBID")          #
+    # ------------------------------------------------------------------ #
+
+    def _inducement_swept(self, m15_df: pd.DataFrame,
+                          zone: Dict,
+                          bias: SignalDirection) -> bool:
+        """
+        Photon inducement rule: before entering at the HTF POI, price must have
+        BUILT a pullback swing on the near side of the zone (early buyers/
+        sellers trapped = PBID) and then SWEPT it on the way into the zone.
+
+        LONG:  a confirmed 15M swing low above zone_high within the lookback,
+               later broken to the downside (price now at/in the zone).
+        SHORT: symmetric with a swing high below zone_low.
+
+        Filters "free-fall" arrivals where no early participants were trapped —
+        those tend to sweep straight through the POI (Photon EM 1 warning).
+        """
+        hc = 'high' if 'high' in m15_df.columns else 'High'
+        lc = 'low'  if 'low'  in m15_df.columns else 'Low'
+
+        pivot  = self.config.get('choch_swing_pivot', 3)
+        lookbk = min(self.config.get('inducement_lookback', 48),
+                     len(m15_df) - pivot - 2)
+        n      = len(m15_df)
+
+        for i in range(n - pivot - 1, max(pivot, n - lookbk) - 1, -1):
+            if i < pivot or i >= n - pivot:
+                continue
+            if bias == SignalDirection.LONG:
+                l_v    = float(m15_df[lc].iloc[i])
+                window = m15_df[lc].iloc[i - pivot: i + pivot + 1]
+                if l_v != float(window.min()):
+                    continue
+                if l_v <= zone['high']:
+                    continue          # swing must be ABOVE the zone (inducement)
+                after = m15_df[lc].iloc[i + 1:]
+                if len(after) and float(after.min()) < l_v:
+                    return True       # built, then swept on the way down
+            else:
+                h_v    = float(m15_df[hc].iloc[i])
+                window = m15_df[hc].iloc[i - pivot: i + pivot + 1]
+                if h_v != float(window.max()):
+                    continue
+                if h_v >= zone['low']:
+                    continue          # swing must be BELOW the zone
+                after = m15_df[hc].iloc[i + 1:]
+                if len(after) and float(after.max()) > h_v:
+                    return True
+        return False
 
     # ------------------------------------------------------------------ #
     # Entry Model 4: EMA20 Bounce (+1 pt)                                #

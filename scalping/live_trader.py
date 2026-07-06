@@ -57,10 +57,16 @@ log = logging.getLogger()
 # ── LOCK STATE (persisted) ────────────────────────────────────────────────────
 
 def load_locks():
+    default = {"locked": False, "dir": None, "threshold": None}
     if LOCK_FILE.exists():
         with open(LOCK_FILE) as f:
-            return json.load(f)
-    return {sym: {"locked": False, "dir": None, "threshold": None} for sym in SYMBOLS}
+            data = json.load(f)
+        # add any new symbols not in saved state
+        for sym in SYMBOLS:
+            if sym not in data:
+                data[sym] = default.copy()
+        return data
+    return {sym: default.copy() for sym in SYMBOLS}
 
 def save_locks(locks):
     with open(LOCK_FILE, "w") as f:

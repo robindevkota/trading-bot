@@ -1,0 +1,183 @@
+# MTF PRO Trading Bot Configuration
+
+# MetaTrader 5 Settings
+mt5:
+  account: 5052539183
+  password: "QoS*4wOp"
+  server: "MetaQuotes-Demo"
+  timeout: 60000
+  path: ""
+
+# Trading Settings
+trading:
+  symbols:
+    - EURUSD
+    - AUDUSD
+    - NZDUSD
+    - USDCHF
+
+  timeframes:
+    h4: "4H"
+    m15: "15M"
+
+  default_risk_percent: 1.0
+  max_trades: 3
+
+# Backtesting Settings
+backtesting:
+  initial_balance: 100000
+  start_date: "2023-01-01"
+  end_date: "2024-12-31"
+  spread: 2.0      # Average spread in pips
+  slippage: 1.0    # Slippage in pips
+
+# Strategy Settings
+strategy:
+  mode: "mtf_pro"
+
+  # MTF PRO — 4-Timeframe Multi-Model (1D bias → 4H OB zone → 1H OB → 15M entry)
+  mtf_pro:
+    # ── Daily bias EMAs (computed from resampled 4H bars) ──
+    d_fast_ema: 21
+    d_slow_ema: 50
+
+    # ── 4H Order Block zone detection ──
+    h4_ob_lookback: 80           # bars back to scan for 4H OBs (~13 days)
+    h4_ob_displacement_pips: 15  # min pips displacement after OB candle
+    h4_ob_body_ratio: 1.5        # displacement body >= 1.5× OB body
+    h4_zone_tol_pips: 10         # tolerance for "inside zone" check
+
+    # ── 1H Order Block zone detection (nested inside 4H zone) ──
+    # v2 feature: 1H OB provides entry timing precision inside 4H macro zone
+    # SL anchor still uses 4H zone_low (structural), NOT 1H OB low
+    use_h1_ob: false             # DISABLED — 1H OB changes SL/TP unfavourably; needs redesign
+    h1_ob_lookback: 80           # bars back to scan on 1H (~3 days)
+    h1_ob_displacement_pips: 8   # min pips displacement on 1H OB
+    h1_zone_tol_pips: 5          # tolerance for "inside 1H zone" check
+
+    # ── 15M EMA ──
+    m15_ema: 20
+
+    # ── Entry model toggles ──
+    use_choch: true              # CHoCH — proper LH-break reversal (+2 pts)
+    use_bos: true                # BOS — any swing break (+1 pt, needs other confluence)
+    use_sweep: true              # Liquidity sweep (+2 pts)
+    use_ema_bounce: true         # EMA20 bounce (+1 pt)
+
+    # ── Entry confluence scoring ──
+    min_entry_score: 2           # min score for pro-trend entry
+    ct_min_score: 4              # min score for counter-trend entry
+
+    # ── Counter-trend enable ──
+    use_counter_trend: true      # allow SHORT when daily=LONG if 4H shows LH/LL
+
+    # ── Direction filter ──
+    use_short_direction: false   # LONG-only mode (both pro-trend LONG + counter-trend LONG)
+
+    # ── CHoCH / BOS model ──
+    choch_lookback: 20           # 15M bars to look back for swing
+    choch_swing_pivot: 3         # bars each side to confirm swing
+
+    # ── Sweep model ──
+    min_wick_pips: 5             # minimum wick extension past SSL/BSL
+    require_body_close: true     # sweep candle must have strong body
+    body_close_pct: 0.50         # body >= 50% of candle range
+
+    # ── v3 Photon LQ entry models (A/B test config) ──
+    use_htf_sweep: true          # EM4: sweep of 4H zone boundary (+2)
+    use_eql_bonus: true          # EM2b: equal lows/highs cluster swept (+1)
+    eql_tol_pips: 3
+    require_inducement: true    # EM2a: PBID filter
+    inducement_lookback: 48
+
+    # ── RSI gates (15M) ──
+    rsi_period: 14
+    long_min_rsi: 45             # LONG: 15M RSI >= 45
+    long_max_rsi: 70             # LONG: 15M RSI <= 70
+    short_min_rsi: 35            # SHORT: 15M RSI >= 35
+    short_max_rsi: 65            # SHORT: 15M RSI <= 65
+
+    # ── Stop Loss / Take Profit ──
+    atr_period: 14
+    atr_buffer: 0.75             # SL = zone_anchor ± atr_buffer × 4H_ATR
+    min_sl_pips: 15
+    max_sl_pct: 0.02             # skip if SL > 2% of entry price
+    tp1_rr: 1.5                  # TP1 (close 50%, move SL to BE)
+    tp2_rr: 3.0                  # TP2 runner
+    tp1_close_pct: 0.50
+
+    # ── 4H ADX trend-strength filter ──
+    h4_adx_min: 20
+
+    # ── Symbol calibration (default — overridden per symbol below) ──
+    pip_size: 0.0001             # 0.0001 for forex, 0.01 for gold
+
+  # ── Per-symbol parameter overrides ──
+  # Each symbol merges these ON TOP OF the global mtf_pro params above.
+  # LOCKED symbols: do not change without re-running full 2022-2024 backtest.
+  symbol_params:
+
+    EURUSD:  # LOCKED — 2023: 3T 67%WR +$6,073 | 2024: 4T 50%WR +$4,315. Do not change.
+      pip_size: 0.0001
+      h4_ob_displacement_pips: 15
+      atr_buffer: 0.75
+      min_sl_pips: 15
+
+    AUDUSD:  # LOCKED — 2023-2024: 2 trades, 50% WR, +$2,894, PF 53.88. Do not change.
+      pip_size: 0.0001
+      h4_ob_displacement_pips: 12
+      atr_buffer: 1.0               # wider SL — AUD stop hunts are common
+      min_sl_pips: 12
+      use_bos: false                # CHoCH/Sweep only — BOS alone loses on AUD
+
+    NZDUSD:  # LOCKED — 2024: 3 trades, 67% WR, +$4,881, PF 4.99. Do not change.
+      pip_size: 0.0001
+      h4_ob_displacement_pips: 12
+      atr_buffer: 1.0
+      min_sl_pips: 12
+      use_bos: false
+
+    USDCHF:  # LOCKED — 2024: 2 trades, 50% WR, +$1,710. Do not change.
+      pip_size: 0.0001
+      h4_ob_displacement_pips: 15
+      atr_buffer: 0.75
+      min_sl_pips: 15
+      use_bos: true
+
+    GBPUSD:  # NOT READY — 0 valid trades 2022-2024. Do not trade live.
+      # GBPUSD had a massive 2022 crash (1.37→1.07) leaving many mitigated OB zones.
+      # Strategy correctly produces 0 signals — waiting for cleaner market structure.
+      pip_size: 0.0001
+      h4_ob_displacement_pips: 15
+      atr_buffer: 1.0
+      min_sl_pips: 18
+      max_sl_pips: 80
+
+    USDCAD:  # CALIBRATING — choppy structure, 1 trade over 3 years. Not recommended.
+      pip_size: 0.0001
+      h4_ob_displacement_pips: 12
+      atr_buffer: 1.0
+      min_sl_pips: 12
+      use_bos: false
+
+# Risk Management
+risk_management:
+  max_risk_per_trade: 1.0    # % of account per trade
+  max_daily_loss: 5.0        # % max daily drawdown
+  max_drawdown: 15.0         # % max total drawdown
+  use_trailing_stop: false
+  trailing_stop_activation: 1.5
+
+# Logging
+logging:
+  level: "INFO"
+  file: true
+  console: true
+  log_dir: "logs"
+
+# Output
+output:
+  save_trades: true
+  plot_trades: true
+  results_dir: "results"
+  generate_reports: true

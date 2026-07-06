@@ -250,7 +250,7 @@ def main():
 
     date_from = datetime.strptime(args.start, "%Y-%m-%d")
     date_to   = datetime.strptime(args.end,   "%Y-%m-%d")
-    print(f"Backtest window: {date_from.date()} → {date_to.date()}\n")
+    print(f"Backtest window: {date_from.date()} -> {date_to.date()}\n")
 
     connect()
 
