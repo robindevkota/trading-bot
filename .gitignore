@@ -36,3 +36,4 @@ scalping/lock_state.json
 research/cache/
 research/portfolio_equity.csv
 research/patterns/cache/
+research/data_backup/*.zip

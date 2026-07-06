@@ -61,6 +61,36 @@ VDT (research/): portfolio Sharpe 0.83, +8.9%/yr at 1% risk, 20/22 positive
 years, corr to SPY +0.04 — but ~52 trades/yr and 42% WR. Shelved as
 not matching the frequency/WR brief; keep as diversifier candidate.
 
+## F10. Ignition generalizes: 6/6 crypto symbols profitable OOS — with a regime warning
+Same locked rules on SOL/BNB/XRP/DOGE (never used in design): all positive
+2024–2026 (WR 65–71%, net +0.05% to +0.11%/trade). BUT XRP and DOGE LOST in
+the 2020–21 meme mania (DOGE 58% WR, −0.39%/trade) — in vertical manias a
+giant green bar is often the top, not ignition. Basket OOS: ~1,038 trades /
+2.5y ≈ 35/month on 6 symbols. Guard idea (untested): skip when 24h return
+already > some extreme.
+
+## F11. Fuel confirmation works: ignition + crowd-short = the best trade found so far
+Binance positioning data (OI, L/S ratios, funding; 5m since 2021-12).
+`big_bar_up + global long/short ratio in bottom quartile` (crowd is short →
+squeeze fuel loaded) improved ignition on BOTH symbols BOTH periods:
+BTC OOS 72.6% WR +0.107%/trade; ETH OOS 74.5% WR +0.155%/trade
+(ETH IS: 74.6% WR +0.433%). ~5 trades/month on 2 symbols — a high-conviction
+tier on top of F3, sized larger, not a replacement.
+
+## F12. Fuel dead ends (tested, buried)
+- Funding-conditioned ignition: inconsistent across symbols (both extremes
+  "helped" on BTC, hurt on ETH) — noise, rejected.
+- H2 coil-break + OI build: too few OOS samples / negative — rejected.
+- H3 OI-dump timing: ignition almost never coincides with OI dumps (n<10) —
+  unmeasurable at this scale.
+- H4 standalone crowd fades (L/S or funding extremes alone): all profitable
+  IS, all dead OOS. Positioning extremes persist for days — they are context,
+  not signals.
+
+## F13. FX intraday death confirmed on 8/8 pairs
+The 4 held-out pairs (NZDUSD, USDCHF, USDCAD, EURJPY) replicated F5 exactly:
+WR 63–77%, net −0.045% to +0.021% ≈ zero. Closed permanently.
+
 ---
 
 *Next research queue:*
