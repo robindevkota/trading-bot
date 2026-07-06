@@ -63,7 +63,8 @@ def trade_returns(df, side_up):
     return ret, won, atr
 
 
-for sym in ["BTCUSDT", "ETHUSDT"]:
+def main():
+  for sym in ["BTCUSDT", "ETHUSDT"]:
     df = load(sym)
     ret_up, won_up, atr = trade_returns(df, True)
     ret_dn, won_dn, _ = trade_returns(df, False)
@@ -97,3 +98,7 @@ for sym in ["BTCUSDT", "ETHUSDT"]:
         rows.append(row)
     print(f"\n==== {sym} — OOS 2024-2026, ATR%>0.25 filter, avg per-trade return ====")
     print(pd.DataFrame(rows).to_string(index=False))
+
+
+if __name__ == "__main__":
+    main()

@@ -74,6 +74,38 @@ SL 4×ATR, timeout 16h. Expected: ~70% WR, ~4–6 trades/week on 2 symbols
 Risk note: the 1:2 RR profile means one loss erases ~2 wins — WR must stay
 above ~67% + fees, so live monitoring vs backtest WR is mandatory.
 
+## Forex (M15, MT5 data 2018–2026, 4 majors) — mined 2026-07-06
+
+Same miner, same IS/OOS discipline, 200k bars per pair (EURUSD, GBPUSD,
+USDJPY, AUDUSD). Order-flow features excluded (no taker data in FX).
+
+**Finding 5 — Forex is the OPPOSITE regime of crypto.** The same patterns
+invert:
+
+| Pattern | Crypto 15m says | Forex M15 says |
+|---|---|---|
+| Big down bar | keep falling (short) | **bounce** (EURUSD OOS lift 1.44, GBPUSD 1.41 for longs) |
+| Squeeze breakout | trade WITH the break | **fade the break** (lift 1.17–1.29, all pairs) |
+| Capitulation | more downside | bounce (AUDUSD lift 1.36) |
+
+Crypto trends intraday (liquidation cascades feed continuation); FX majors
+mean-revert intraday (bank flow fades retail breakouts). One strategy cannot
+serve both — they need opposite trade direction.
+
+**Finding 6 — Sessions are volatility timers, not direction signals.**
+London/NY-open hours show elevated hit rates for BOTH longs and shorts
+(z up to 21): big moves cluster there, but the session doesn't say which way.
+
+**Finding 7 — FX intraday edges are real but economically dead.** The fade
+patterns win 65–70% at the 1:2 profile out-of-sample — but breakeven is 66.7%,
+and M15 FX targets (2×ATR ≈ 6–10 pips) are so small that ~1.2 pips of
+spread+slippage erases the residual. Net expectancy: −0.02% to +0.01% per
+trade ≈ zero. On H1 the mean-reversion effect fades entirely (WR 50–62%).
+Verdict: **no tradable intraday pattern edge on FX majors at retail costs** —
+this is precisely why MTF PRO (4H zones, wide targets) and daily trend (VDT)
+are the right FX vehicles, and why the intraday pattern strategy should be
+built on crypto futures only.
+
 ## Reproduce
 
 ```bash
