@@ -91,6 +91,16 @@ tier on top of F3, sized larger, not a replacement.
 The 4 held-out pairs (NZDUSD, USDCHF, USDCAD, EURJPY) replicated F5 exactly:
 WR 63–77%, net −0.045% to +0.021% ≈ zero. Closed permanently.
 
+## F14. FX swing (H4) has no robust price-pattern edge either
+Mined 19 years of H4 (2007–2026, 4 majors deep + 4 pairs from 2018) with the
+full universal feature set, TP 2×ATR / SL 4×ATR / ~2.7-day hold, where spread
+is only ~2% of target (cost excuse removed). Result: out of ~500
+pattern-pair-side tests, only 6 marginal single-pair survivors (≈ chance
+level after multiple testing), ZERO patterns robust on ≥3 pairs. The
+candlestick/volume/structure pattern family carries no swing edge on FX
+majors. FX edges, if any, live in slower signal classes: multi-week trend,
+carry, COT positioning — different research program, weekly horizon.
+
 ---
 
 *Next research queue:*
