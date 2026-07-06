@@ -101,6 +101,19 @@ candlestick/volume/structure pattern family carries no swing edge on FX
 majors. FX edges, if any, live in slower signal classes: multi-week trend,
 carry, COT positioning — different research program, weekly horizon.
 
+## F15. SMC multi-timeframe (H4 zone + M15 trigger) has NO edge on FX — tested properly
+Full causal implementation: H4 demand/supply zones (impulse-origin candles,
+mitigation-tracked), M15 confirmed-pivot liquidity sweeps, CHoCH, BOS.
+9 setups (zone+choch, zone+sweep, trend+bos, sweep→choch, zone-touch) × 2
+profiles (TP2:SL4 and tight-stop TP2:SL1) × 8 pairs × IS(2018-23)/OOS(2024-26).
+~240k setup-trades evaluated. Result: EVERY setup net-negative in EVERY
+period at BOTH profiles; win rates sit 1-4pp BELOW profile breakeven even
+before costs; zone-touch baseline shows H4 zones give zero lift over random
+entry. The SMC concept family (as objectively definable) has no statistical
+edge on FX majors. Any past success with these concepts (incl. MTF PRO's
+14-trade sample) is within luck's range. FX is now closed at ALL tested
+scales and concept families: F5, F13, F14, F15.
+
 ---
 
 *Next research queue:*
