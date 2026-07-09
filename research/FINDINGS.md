@@ -114,6 +114,28 @@ edge on FX majors. Any past success with these concepts (incl. MTF PRO's
 14-trade sample) is within luck's range. FX is now closed at ALL tested
 scales and concept families: F5, F13, F14, F15.
 
+## F16. Portfolio backtest exposed what per-symbol averages hid (2026-07-09)
+Full compounding simulation of the ignition basket (6 symbols, 2020–2026):
+1. **Naive portfolio ≈ flat**: 67% WR but final equity x0.96, maxDD −44%.
+   Aggregate per-symbol OOS profits were concentrated in 2025 and in
+   high-volatility signals.
+2. **Edge is inverse to what fixed-risk sizing assumes**: risk-based sizing
+   (notional ∝ 1/ATR) overweights calm signals, which are NET NEGATIVE in
+   both IS and OOS; the profit lives in the top-volatility tercile
+   (+0.60% IS / +0.33% OOS per trade). Fixed-risk sizing inverts a winning
+   pattern into a losing portfolio. Use equal-notional sizing.
+3. **Regime truth (IS-chosen, OOS-confirmed): ignition pays BELOW the 7-day
+   EMA, not above** — it is a SHORT-SQUEEZE harvester (consistent with F11),
+   not a bull-momentum system. Bull-regime signals lost money in-sample.
+4. **Best defensible config**: ignition + below-7d-EMA + ATR%>0.5,
+   equal-notional 35%/trade: OOS +0.194%/trade, 68.8% WR, ~5 trades/mo,
+   full-period CAGR +4.4%, maxDD −19%, but 2021 and 2026-H1 negative.
+5. **Warning: 2026 H1 is negative in every configuration** (WR ~59–65%).
+   Pattern may be decaying or in normal drawdown — cannot distinguish yet.
+6. **OOS purity now degraded** (consulted repeatedly during today's
+   analysis). The live paper trader (started 2026-07) is the only clean
+   referee left. Real-money deployment is NOT justified on current evidence.
+
 ---
 
 *Next research queue:*
