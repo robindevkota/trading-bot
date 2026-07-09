@@ -1,11 +1,14 @@
-"""Paper trader for the Momentum Ignition pattern (F3/F10/F11).
+"""Paper trader — SQUEEZE IGNITION config (F16 surviving configuration).
 
 Live 15m klines from Binance public data API (no keys, no account).
-Signal  : bar closes >= 2.5 x ATR(14) above prior close, ATR% > 0.25.
+Signal  : bar closes >= 2.5 x ATR(14) above prior close
+          AND ATR% > 0.5 (high-volatility only)
+          AND close < EMA(672) (below 7-day trend = short-squeeze regime).
 Entry   : at signal bar close (fee+slippage modelled: 0.075% round trip).
 Exit    : TP +2xATR / SL -4xATR first-touch on candle high/low,
           timeout after 64 bars (16h) at close. Same as the backtest.
-Sizing  : risk 0.75% of paper equity per trade (SL hit = -0.75%).
+Sizing  : EQUAL NOTIONAL, 35% of paper equity per trade (F16: risk-based
+          sizing overweights calm signals and inverts the edge).
 State   : paper_state.json (restart-safe). Trades: paper_trades.csv.
 
 Run continuously:   python paper_trader.py
@@ -26,22 +29,41 @@ STATE_F = os.path.join(DIR, "paper_state.json")
 TRADES_F = os.path.join(DIR, "paper_trades.csv")
 
 BIG_BAR = 2.5        # ignition threshold, x ATR
-ATR_MIN = 0.0025     # ATR% filter
+ATR_MIN = 0.005      # ATR% filter — high-volatility signals only (F16)
+EMA_SPAN = 672       # 7-day trend; trade only BELOW it (squeeze regime)
 TP_R, SL_R = 2.0, 4.0
 TIMEOUT_BARS = 64
 FEE_RT = 0.00075     # 0.055% fees + 0.02% slippage round trip
-RISK_PCT = 0.0075
+NOTIONAL_PCT = 0.35  # equal-notional sizing (F16)
+MAX_EXPOSURE = 2.0   # total open notional cap, x equity
 START_EQ = 10_000.0
 
 
-def klines(sym, limit=100):
-    url = f"{API}?symbol={sym}&interval=15m&limit={limit}"
-    raw = json.loads(urllib.request.urlopen(url, timeout=20).read())
-    # drop the still-open candle; keep closed ones only
+def klines(sym, limit=2000):
+    """Fetch up to 2000 closed candles (two pages) for clean EMA(672)."""
+    rows = []
+    end = ""
+    for _ in range(2):
+        url = f"{API}?symbol={sym}&interval=15m&limit=1000{end}"
+        raw = json.loads(urllib.request.urlopen(url, timeout=20).read())
+        if not raw:
+            break
+        rows = raw + rows
+        end = f"&endTime={raw[0][0] - 1}"
+        if len(rows) >= limit:
+            break
     now_ms = time.time() * 1000
-    rows = [r for r in raw if r[6] < now_ms]
+    rows = [r for r in rows if r[6] < now_ms]
     return [dict(t=int(r[0]), o=float(r[1]), h=float(r[2]),
                  l=float(r[3]), c=float(r[4])) for r in rows]
+
+
+def ema(bars, span):
+    k = 2 / (span + 1)
+    e = bars[0]["c"]
+    for b in bars[1:]:
+        e += k * (b["c"] - e)
+    return e
 
 
 def atr14(bars):
@@ -132,11 +154,15 @@ def cycle(state):
             continue
         if (last["c"] - prev_c) < BIG_BAR * a:
             continue
+        if last["c"] >= ema(bars, EMA_SPAN):
+            continue  # only squeeze regime: below 7-day trend
+        exposure = sum(p["notional"] for p in state["open"].values())
+        notional = state["equity"] * NOTIONAL_PCT
+        if exposure + notional > MAX_EXPOSURE * state["equity"]:
+            continue
         entry = last["c"]
         sl = entry - SL_R * a
         tp = entry + TP_R * a
-        notional = state["equity"] * RISK_PCT / (SL_R * a / entry)
-        notional = min(notional, state["equity"] * 5)  # leverage cap
         state["open"][sym] = dict(entry=entry, tp=tp, sl=sl,
                                   notional=notional, bars_held=0,
                                   last_bar=last["t"], opened=now())
