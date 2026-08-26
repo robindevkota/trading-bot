@@ -1,0 +1,44 @@
+strategy:
+  name: "Omarnowick No-Wick Candle"
+
+  # Timeframe
+  exec_tf: "M15"
+
+  # Swing / structure detection
+  fractal_bars: 2        # bars each side for swing high/low pivot
+  bos_min_count: 2        # min BOS events required before structure is "confirmed"
+
+  # Retest window
+  retest_max_bars: 10     # no-wick candle invalidated if no retest within N candles
+
+  # Stop loss buffer beyond reference swing point (pips)
+  sl_buffer_pips: 5.0
+
+  # Early entry adjustment: if raw SL distance > this many pips,
+  # entry fires N pips before the no-wick open is fully touched
+  large_sl_threshold_pips: 10.0
+  early_entry_pips: 2.0
+
+  # Fixed R:R
+  tp_rr: 1.0
+
+  # Which setups to run this pass: any of A, B, C
+  setups: ["A", "B", "C"]
+
+  # Session filter (UTC hours) — EXCLUDE these windows
+  no_trade_windows:
+    - [0, 2]     # early Asia
+    - [20, 22]   # late New York
+
+  # Position sizing
+  risk_pct: 0.01
+  account_balance: 10000
+
+  symbols:
+    - CADJPY
+    - USDCHF
+    - USDJPY
+    - AUDUSD
+    - GBPUSD
+
+  m15_bar_count: 60000

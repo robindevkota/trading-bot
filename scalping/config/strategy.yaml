@@ -15,6 +15,19 @@ strategy:
   min_c1_atr_mult: 0.70     # C1 body >= 0.7 x ATR(14)  [tuned from 0.5]
   min_body_pct: 0.60         # C2, C3 body >= 60% of C1 body  [tuned from 0.50]
 
+  # Zone filter -- NEW, testing
+  # "Zone" is not one fixed pattern -- it's whichever of these is nearest to
+  # price at signal time: an order block (last opposing candle before an
+  # impulse, same def as ob_sweep), or a recent swing high/low (fractal,
+  # same def as omarnowick). C1 of the 3-candle pattern must tap/come near
+  # whichever zone type is closest.
+  use_zone_filter: true
+  zone_fractal_bars: 2       # bars each side for swing high/low pivot
+  zone_ob_lookback: 10        # bars to scan back for a qualifying OB
+  zone_impulse_min_pips: 5.0  # min impulse size to qualify an OB
+  zone_max_age_bars: 100       # zone/swing point discarded if older than this
+  zone_proximity_pips: 3.0    # C1 counts as "tapping" if within this many pips
+
   # Exit rules — per symbol (LOCKED — do not change without revalidation)
   # Validated: 2025 backtest | NZDUSD +$765 | GBPUSD +$1,392 | AUDUSD +$705 | XAUUSD +$709 | Total +$3,571
   tp_body_mult:

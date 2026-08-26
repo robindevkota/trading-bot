@@ -26,6 +26,13 @@ SYMBOLS           = S["symbols"]
 M5_BARS           = S["m5_bar_count"]
 H1_BARS           = S["h1_bar_count"]
 
+USE_ZONE_FILTER      = S.get("use_zone_filter", False)
+ZONE_FRACTAL_BARS    = S.get("zone_fractal_bars", 2)
+ZONE_OB_LOOKBACK     = S.get("zone_ob_lookback", 10)
+ZONE_IMPULSE_MIN_PIPS = S.get("zone_impulse_min_pips", 5.0)
+ZONE_MAX_AGE_BARS    = S.get("zone_max_age_bars", 100)
+ZONE_PROXIMITY_PIPS  = S.get("zone_proximity_pips", 3.0)
+
 TF_MAP = {"M5": mt5.TIMEFRAME_M5, "H1": mt5.TIMEFRAME_H1}
 
 # -- HELPERS -------------------------------------------------------------------
@@ -42,6 +49,79 @@ def calc_atr(df, period=14):
 
 def body(row):
     return abs(row["close"] - row["open"])
+
+def pip_size(symbol):
+    return 0.01 if "JPY" in symbol else 0.0001
+
+
+def find_ob_zone(bars, i, direction, pip):
+    """Last opposing candle before an impulse of >= ZONE_IMPULSE_MIN_PIPS,
+    scanning back up to ZONE_OB_LOOKBACK bars from i. Same definition used
+    in ob_sweep. Returns (zone_low, zone_high) or None."""
+    row = bars.iloc[i]
+    for j in range(1, ZONE_OB_LOOKBACK + 1):
+        k = i - j
+        if k < 0:
+            break
+        prev = bars.iloc[k]
+        if direction == "long" and prev["close"] < prev["open"]:
+            impulse_pips = (row["close"] - prev["low"]) / pip
+            if impulse_pips >= ZONE_IMPULSE_MIN_PIPS:
+                return (prev["low"], prev["high"]) if j <= ZONE_MAX_AGE_BARS else None
+        elif direction == "short" and prev["close"] > prev["open"]:
+            impulse_pips = (prev["high"] - row["close"]) / pip
+            if impulse_pips >= ZONE_IMPULSE_MIN_PIPS:
+                return (prev["low"], prev["high"]) if j <= ZONE_MAX_AGE_BARS else None
+    return None
+
+
+def find_swing_zone(bars, i, direction, fractal_n):
+    """Most recent confirmed swing point (fractal) of the relevant type:
+    long -> nearest swing LOW below current price (demand / HL)
+    short -> nearest swing HIGH above current price (supply / LH)
+    Same fractal definition used in omarnowick. Returns (low, high) as a
+    zero-width zone at that swing's price, or None."""
+    lo_bound = max(0, i - ZONE_MAX_AGE_BARS)
+    for k in range(i - fractal_n, lo_bound, -1):
+        if k - fractal_n < 0 or k + fractal_n >= len(bars):
+            continue
+        window = bars.iloc[k - fractal_n: k + fractal_n + 1]
+        candle = bars.iloc[k]
+        if direction == "long":
+            if candle["low"] == window["low"].min() and (window["low"] == candle["low"]).sum() == 1:
+                return (candle["low"], candle["low"])
+        else:
+            if candle["high"] == window["high"].max() and (window["high"] == candle["high"]).sum() == 1:
+                return (candle["high"], candle["high"])
+    return None
+
+
+def find_nearest_zone(bars, i, direction, pip, ref_price):
+    """Check both OB and swing-point candidate zones; return whichever
+    candidate's near edge is closest to ref_price (the price being tested
+    for a tap), or None if neither exists."""
+    candidates = []
+    ob = find_ob_zone(bars, i, direction, pip)
+    if ob is not None:
+        candidates.append(ob)
+    sw = find_swing_zone(bars, i, direction, ZONE_FRACTAL_BARS)
+    if sw is not None:
+        candidates.append(sw)
+    if not candidates:
+        return None
+    def dist(zone):
+        lo, hi = zone
+        if ref_price < lo: return lo - ref_price
+        if ref_price > hi: return ref_price - hi
+        return 0.0
+    return min(candidates, key=dist)
+
+
+def c1_taps_zone(c1, zone, proximity):
+    zone_low, zone_high = zone
+    lo = zone_low - proximity
+    hi = zone_high + proximity
+    return c1["low"] <= hi and c1["high"] >= lo
 
 # -- MT5 -----------------------------------------------------------------------
 
@@ -149,6 +229,14 @@ def run_backtest(symbol, m5, bias_df):
             if c2b < MIN_BODY_PCT * c1b:        continue
             if c3b < MIN_BODY_PCT * c1b:        continue
             direction = "short"
+
+        if USE_ZONE_FILTER:
+            pip = pip_size(symbol)
+            zone = find_nearest_zone(bars, i - 2, direction, pip, c1["close"])
+            if zone is None:
+                continue
+            if not c1_taps_zone(c1, zone, ZONE_PROXIMITY_PIPS * pip):
+                continue
 
         entry    = c4["open"]
         avg_body = (c1b + c2b + c3b) / 3
