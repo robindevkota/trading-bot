@@ -51,7 +51,7 @@ STATE_FILE  = BASE / "ob_state.json"
 LOG_FILE    = BASE / "trader.log"
 TRADE_LOG   = BASE / "trades_live.csv"
 
-DRY_RUN     = False   # set True to test without placing orders
+DRY_RUN     = True    # set True to test without placing orders
 
 # ── LOGGING ────────────────────────────────────────────────────────────────────
 
