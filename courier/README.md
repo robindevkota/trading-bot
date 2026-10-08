@@ -12,9 +12,9 @@ no candles, no levels, no stop management. Every rule is in Python.
 1. Copy `Courier_EA.mq5` (or the compiled `Courier_EA.ex5`) into the
    terminal's `MQL5\Experts\` folder (File -> Open Data Folder in MT5) and
    compile it in MetaEditor if you copied the source.
-2. Log the terminal into the **DEMO** account. With `InpDemoOnly=true` (the
-   default) the expert refuses any other account: it prints why and removes
-   itself -- at start, and again before every order.
+2. Log the terminal into the **DEMO** account. The expert refuses any other
+   account -- hardcoded, there is no input to turn it off: it prints why and
+   removes itself, at start and again before every order.
 3. Turn **Algo Trading** on (toolbar button).
 4. Open ONE chart (any symbol, any timeframe) and attach `Courier_EA`. One
    instance trades every pair in the file -- do not attach it twice.
@@ -31,7 +31,8 @@ only folder an expert can open without `FILE_COMMON`):
 | `orders.jsonl` | the daemon | the expert |
 | `fills.jsonl` | the expert | the daemon |
 | `ea_state.txt` | the expert | the expert (cursor, week balance) |
-| `ea_ids.txt` | the expert | the expert (id list for magic -> id) |
+| `ea_ids.txt` | the expert | the expert (ids placed: magic -> id, never twice) |
+| `ea_deals.txt` | the expert | the expert (deal tickets already reported) |
 
 The daemon finds that folder itself: it asks the attached terminal
 `mt5.terminal_info().data_path` and writes `<data_path>\MQL5\Files\courier\`
@@ -59,8 +60,16 @@ fills.jsonl   {"id":"...","t":"...","event":"placed|filled|cancelled|closed|reje
   (the daemon's `protocol.magic_of`, self-tested at start); comment = the id.
 * **cancel** -> deletes the pending order with that magic. Nothing to cancel
   (already filled / expired) is reported as `rejected` with the reason.
-* A command whose expiry has already passed is NOT placed: `rejected`,
-  reason "stale" (the PC was off).
+* A command whose expiry has already passed, or a place line written more
+  than 3 minutes (server time) before the expert read it, is NOT placed:
+  `rejected`, reason "stale" (the PC was off).
+* An id the expert has placed once (`ea_ids.txt`) is never placed again,
+  even if `ea_state.txt` is lost or `orders.jsonl` shrinks.
+* **Missed events:** a terminal that was off when the server hit SL / TP
+  never sees the trade event. On start and every hour the expert sweeps the
+  last 40 days of deal history for courier magics and writes any filled /
+  closed line it has not written yet, deduped by deal ticket
+  (`ea_deals.txt`); its spread is reported as -1 (unknown, after the fact).
 * **filled / closed** come from `OnTradeTransaction` (`DEAL_ADD`), with the
   deal price and `SYMBOL_SPREAD` at that moment; `closed` carries sl / tp /
   manual / stop_out. An order the server expires is reported `cancelled`,
@@ -80,7 +89,6 @@ is `rejected` -- never rounded up.
 
 | input | default | |
 |---|---|---|
-| `InpDemoOnly` | true | refuse / remove on a non-demo account |
 | `InpRiskPct` | 0.5 | % of the week's opening balance per R |
 | `InpFolder` | courier | `MQL5\Files\<folder>` |
 | `InpSymbolSuffix` | "" | broker suffix (MetaQuotes-Demo has none) |

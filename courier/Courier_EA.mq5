@@ -27,9 +27,15 @@
 //| replays nothing twice; a place whose magic already exists on the |
 //| account is skipped as well (belt and braces).                    |
 //|                                                                  |
-//| InpDemoOnly (default true): on anything but a DEMO account the   |
+//| DEMO ONLY, NOT CONFIGURABLE: on anything but a DEMO account the  |
 //| expert prints why and removes itself -- at init, and again       |
-//| before every order.                                              |
+//| before every order. There is no input to turn this off.          |
+//|                                                                  |
+//| Missed events: if the terminal was off when the server hit SL /  |
+//| TP, no OnTradeTransaction ever fires -- so on init and every hour |
+//| the expert sweeps the deal history for courier magics and writes |
+//| any filled / closed line it has not written yet (deduped by deal |
+//| ticket, courier\ea_deals.txt).                                   |
 //+------------------------------------------------------------------+
 #property copyright "Backtester courier -- dispatches what the app decided"
 #property version   "1.00"
@@ -37,14 +43,16 @@
 #include <Trade\Trade.mqh>
 CTrade trade;
 
-input bool   InpDemoOnly     = true;      // refuse (and remove itself on) any non-demo account
 input double InpRiskPct      = 0.5;       // % of the week's opening balance risked per order (one R)
 input string InpFolder       = "courier"; // MQL5\Files\<folder>\ -- where the daemon writes
 input string InpSymbolSuffix = "";        // broker suffix, e.g. ".m" (MetaQuotes-Demo: none)
 input double InpMarginUse    = 0.9;       // use at most this share of free margin for one order
 input int    InpTimerSec     = 1;         // poll period
 
-string g_orders, g_fills, g_state, g_ids;
+string g_orders, g_fills, g_state, g_ids, g_deals;
+ulong  g_doneDeals[];
+datetime g_lastSweep = 0;
+#define STALE_PLACE_SEC 180      // a place line older than this (server time) is not placed
 long   g_cursor      = 0;
 long   g_week        = -1;
 double g_weekBalance = 0.0;
@@ -259,7 +267,7 @@ bool AccountIsDemo()
 
 bool GuardOrRemove()
   {
-   if(!InpDemoOnly || AccountIsDemo()) return true;
+   if(AccountIsDemo()) return true;
    PrintFormat("Courier: account %I64d is NOT a demo account (trade mode %I64d). "
                "The courier only runs on a DEMO -- removing myself.",
                AccountInfoInteger(ACCOUNT_LOGIN), AccountInfoInteger(ACCOUNT_TRADE_MODE));
@@ -342,6 +350,19 @@ void Place(const string line)
      {
       WriteFill(id, "rejected", TimeCurrent(), 0, spread, 0,
                 "stale: expiry " + Stamp(exp) + " passed before the expert read it (the PC was off)");
+      return;
+     }
+   datetime sent = ParseT(JStr(line, "t"));
+   if(sent > 0 && TimeCurrent() - sent > STALE_PLACE_SEC)
+     {
+      WriteFill(id, "rejected", TimeCurrent(), 0, spread, 0,
+                "stale: written " + Stamp(sent) + ", more than 3 min before the expert read it");
+      return;
+     }
+   if(IdOf(magic) != "")
+     {
+      // placed before (ea_ids.txt survives a lost ea_state.txt / a shrunk orders.jsonl)
+      PrintFormat("courier: %s was already placed once (known id) -- not placed twice", id);
       return;
      }
    if(HaveMagic(magic))
@@ -479,7 +500,7 @@ int OnInit()
       Print("courier: CRC self-test FAILED -- magic numbers would not match the daemon's");
       return INIT_FAILED;
      }
-   if(InpDemoOnly && !AccountIsDemo())
+   if(!AccountIsDemo())
      {
       PrintFormat("Courier: account %I64d is NOT a demo account (trade mode %I64d). Removing myself.",
                   AccountInfoInteger(ACCOUNT_LOGIN), AccountInfoInteger(ACCOUNT_TRADE_MODE));
@@ -490,9 +511,12 @@ int OnInit()
    g_fills  = InpFolder + "\\fills.jsonl";
    g_state  = InpFolder + "\\ea_state.txt";
    g_ids    = InpFolder + "\\ea_ids.txt";
+   g_deals  = InpFolder + "\\ea_deals.txt";
    FolderCreate(InpFolder);
    LoadState();
    LoadIds();
+   LoadDeals();
+   Sweep();                                       // anything missed while the terminal was off
    trade.SetDeviationInPoints(10);
    trade.LogLevel(LOG_LEVEL_ERRORS);
    if(!TerminalInfoInteger(TERMINAL_TRADE_ALLOWED))
@@ -512,6 +536,94 @@ void OnDeinit(const int reason)
 void OnTimer()
   {
    PollOrders();
+   if(TimeLocal() - g_lastSweep >= 3600) Sweep();
+  }
+
+//+------------------------------------------------------------------+
+//| deals -> filled / closed, each deal ticket written ONCE          |
+//+------------------------------------------------------------------+
+bool DealDone(const ulong deal)
+  {
+   for(int i = ArraySize(g_doneDeals) - 1; i >= 0; i--)
+      if(g_doneDeals[i] == deal) return true;
+   return false;
+  }
+
+void DealMark(const ulong deal, const bool persist)
+  {
+   int n = ArraySize(g_doneDeals);
+   ArrayResize(g_doneDeals, n + 1);
+   g_doneDeals[n] = deal;
+   if(!persist) return;
+   int h = FileOpen(g_deals, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI);
+   if(h == INVALID_HANDLE) return;
+   FileSeek(h, 0, SEEK_END);
+   FileWriteString(h, IntegerToString((long)deal) + "\n");
+   FileClose(h);
+  }
+
+void LoadDeals()
+  {
+   if(!FileIsExist(g_deals)) return;
+   int h = FileOpen(g_deals, FILE_READ | FILE_TXT | FILE_ANSI);
+   if(h == INVALID_HANDLE) return;
+   while(!FileIsEnding(h))
+     {
+      string v = FileReadString(h);
+      StringTrimLeft(v);
+      StringTrimRight(v);
+      if(StringLen(v) > 0) DealMark((ulong)StringToInteger(v), false);
+     }
+   FileClose(h);
+  }
+
+// live = from OnTradeTransaction (the spread now IS the spread at the deal);
+// a sweep reports a deal after the fact, so its spread is unknown (-1)
+void ReportDeal(const ulong deal, const bool live)
+  {
+   if(deal == 0 || DealDone(deal)) return;
+   if(!HistoryDealSelect(deal)) return;
+   ulong pos = (ulong)HistoryDealGetInteger(deal, DEAL_POSITION_ID);
+   ulong magic = (ulong)HistoryDealGetInteger(deal, DEAL_MAGIC);
+   long entry = HistoryDealGetInteger(deal, DEAL_ENTRY);
+   double px = HistoryDealGetDouble(deal, DEAL_PRICE);
+   datetime t = (datetime)HistoryDealGetInteger(deal, DEAL_TIME);
+   string sym = HistoryDealGetString(deal, DEAL_SYMBOL);
+   long reasonCode = HistoryDealGetInteger(deal, DEAL_REASON);
+   string id = IdOf(magic);
+   if(id == "" && pos != 0) id = IdOfPosition(pos);
+   if(id == "") return;                                 // not the courier's (a hand trade)
+   long spread = live ? SymbolInfoInteger(sym, SYMBOL_SPREAD) : -1;
+   string tag = live ? "" : " (history sweep: the terminal missed it live)";
+   if(entry == DEAL_ENTRY_IN)
+      WriteFill(id, "filled", t, px, spread, pos, "deal " + IntegerToString((long)deal) + tag);
+   else if(entry == DEAL_ENTRY_OUT || entry == DEAL_ENTRY_OUT_BY)
+     {
+      string why = "other";
+      if(reasonCode == DEAL_REASON_SL)          why = "sl";
+      else if(reasonCode == DEAL_REASON_TP)     why = "tp";
+      else if(reasonCode == DEAL_REASON_SO)     why = "stop_out";
+      else if(reasonCode == DEAL_REASON_CLIENT) why = "manual";
+      else if(reasonCode == DEAL_REASON_MOBILE) why = "manual";
+      else if(reasonCode == DEAL_REASON_WEB)    why = "manual";
+      else if(reasonCode == DEAL_REASON_EXPERT) why = "expert";
+      WriteFill(id, "closed", t, px, spread, pos, why + tag);
+     }
+   else
+      return;
+   DealMark(deal, true);
+  }
+
+// every courier deal of the last 40 days that was never written (terminal off at SL / TP)
+void Sweep()
+  {
+   g_lastSweep = TimeLocal();
+   if(!HistorySelect(TimeCurrent() - 40 * 86400, TimeCurrent() + 86400)) return;
+   int n = HistoryDealsTotal();
+   ulong tickets[];
+   ArrayResize(tickets, n);
+   for(int i = 0; i < n; i++) tickets[i] = HistoryDealGetTicket(i);   // oldest first
+   for(int i = 0; i < n; i++) ReportDeal(tickets[i], false);       // ReportDeal re-selects
   }
 
 //+------------------------------------------------------------------+
@@ -521,31 +633,7 @@ void OnTradeTransaction(const MqlTradeTransaction &tx, const MqlTradeRequest &rq
   {
    if(tx.type == TRADE_TRANSACTION_DEAL_ADD)
      {
-      if(!HistoryDealSelect(tx.deal)) return;
-      ulong pos = (ulong)HistoryDealGetInteger(tx.deal, DEAL_POSITION_ID);
-      string id = IdOf((ulong)HistoryDealGetInteger(tx.deal, DEAL_MAGIC));
-      long entry = HistoryDealGetInteger(tx.deal, DEAL_ENTRY);
-      double px = HistoryDealGetDouble(tx.deal, DEAL_PRICE);
-      datetime t = (datetime)HistoryDealGetInteger(tx.deal, DEAL_TIME);
-      string sym = HistoryDealGetString(tx.deal, DEAL_SYMBOL);
-      long reasonCode = HistoryDealGetInteger(tx.deal, DEAL_REASON);
-      if(id == "" && pos != 0) id = IdOfPosition(pos);
-      if(id == "") return;                              // not the courier's (a hand trade)
-      long spread = SymbolInfoInteger(sym, SYMBOL_SPREAD);
-      if(entry == DEAL_ENTRY_IN)
-         WriteFill(id, "filled", t, px, spread, pos, "deal " + IntegerToString((long)tx.deal));
-      else if(entry == DEAL_ENTRY_OUT || entry == DEAL_ENTRY_OUT_BY)
-        {
-         string why = "other";
-         if(reasonCode == DEAL_REASON_SL)          why = "sl";
-         else if(reasonCode == DEAL_REASON_TP)     why = "tp";
-         else if(reasonCode == DEAL_REASON_SO)     why = "stop_out";
-         else if(reasonCode == DEAL_REASON_CLIENT) why = "manual";
-         else if(reasonCode == DEAL_REASON_MOBILE) why = "manual";
-         else if(reasonCode == DEAL_REASON_WEB)    why = "manual";
-         else if(reasonCode == DEAL_REASON_EXPERT) why = "expert";
-         WriteFill(id, "closed", t, px, spread, pos, why);
-        }
+      ReportDeal(tx.deal, true);
       return;
      }
    if(tx.type == TRADE_TRANSACTION_HISTORY_ADD &&
